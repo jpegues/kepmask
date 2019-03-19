@@ -1,2 +1,4 @@
 # kepmask
-A package that generates Keplerian masks for a given protoplanetary disk.
+**kepmask** is a package that generates Keplerian masks for protoplanetary disks.
+
+COMING SOON.
