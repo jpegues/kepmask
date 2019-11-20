@@ -149,7 +149,7 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
     ##Below Section: If hyperfine lines, prepares velocity shifts of multiple masks
     if freqlist is not None: #If hyperfine/combined masks desired
         #Below calculates velocity shifts
-        sysvelarr = [(sysvel + astmod.conv_freqtovel(
+        sysvelarr = [(sysvel + conv_freqtovel(
                                         freq=freqlist[ai], restfreq=freqlist[0]))
                 for ai in range(0, len(freqlist))] #m/s
     else: #If no hyperfine lines given, will just calculate 1 mask set as normal
@@ -192,7 +192,7 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
             #Tests, if so desired
             if showmidtests:
                 #Thermal broadening width plot
-                astmod.plot_somematr(matr=vdelttherm,
+                plot_somematr(matr=vdelttherm,
                     x_arr=np.arange(0, xlen, 1),
                     y_arr=np.arange(0, ylen, 1),
                     vmin=vdelttherm.min()/1.0E3,
@@ -210,7 +210,7 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
                 plt.savefig(testsavename)
                 plt.close()
                 #Turbulence broadening width plot
-                astmod.plot_somematr(matr=vdeltturb,
+                plot_somematr(matr=vdeltturb,
                     x_arr=np.arange(0, xlen, 1),
                     y_arr=np.arange(0, ylen, 1),
                     vmin=vdeltturb.min()/1.0E3,
@@ -236,7 +236,7 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
             #Tests, if so desired
             if showmidtests:
                 #Thermal broadening width plot
-                astmod.plot_somematr(matr=vdeltyen,
+                plot_somematr(matr=vdeltyen,
                     x_arr=np.arange(0, xlen, 1),
                     y_arr=np.arange(0, ylen, 1),
                     vmin=vdeltyen.min()/1.0E3,
@@ -360,7 +360,7 @@ def calc_Kepvelfield(xlen, ylen, midx, midy, rawidth, decwidth, mstar, posang, i
     
     #Tests, if so desired
     if showtests:
-        astmod.plot_somematr(matr=velmatr,
+        plot_somematr(matr=velmatr,
             x_arr=np.arange(0, xlen, 1), y_arr=np.arange(0, ylen, 1),
             vmin=velmatr.min()/1.0E3, vmax=velmatr.max()/1.0E3,
             yscale=(180.0/pi*3600), xscale=(180.0/pi*3600),
@@ -982,7 +982,7 @@ def plot_somematr(matr, x_arr, y_arr, vmin=None, vmax=None, matrscale=1, figsize
     
     #Below sets up the colorbar
     if docbar:
-        cbar = plt.colorbar(maphere, ticks=tickvals) #The colorbar itself
+        cbar = plt.colorbar(maphere, ticks=tickshows) #The colorbar itself
         cbar.ax.set_yticklabels(ticknames) #Applies the colorbar tick labels
         cbar.set_label(cbartitle, rotation=270) #Adds in colorbar title
         plt.axes().set_aspect("equal") #Evens out the size
