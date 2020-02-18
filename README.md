@@ -53,7 +53,7 @@ kmset_j1604.plot_product("mom0") #mom0
 kmset_j1604.plot_product("spectrum", ylim=[-20, 1400]) #Spectrum
 ```
 
-If you end up using our package (and we hope you do!), please cite our hard work!  You can cite us using Zenodo (linked via the shiny DOI release badge below):
+If you end up using our package (and we hope you do!), please cite our hard work!  You can cite us [using Zenodo](https://zenodo.org/record/3672187#.Xktl0ShKgrM). Here is our shiny DOI release badge (via Zenodo):
 
 ![DOI button](https://zenodo.org/badge/176531775.svg)
 
