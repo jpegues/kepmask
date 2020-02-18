@@ -1,4 +1,4 @@
-# pykepmask
+# pykepmask (v2.0.0)
 **pykepmask** is a package that predicts the spatial location of emission in disks undergoing Keplerian rotation, particularly protoplanetary disks (e.g., [Rosenfeld et al. 2013](https://ui.adsabs.harvard.edu/abs/2013ApJ...774...16R/abstract); [Yen et al. 2016](https://ui.adsabs.harvard.edu/abs/2016ApJ...832..204Y/abstract)).  These masks can be used to extract the molecular line emission, such as C18O emission, and to decrease the noise incorporated into final image products (such as mom0s and spectra).  
 
 **Check out our tutorial (tutorial_pykepmask.ipynb) for installation instructions and a walkthrough of how to use this package.**  But briefly, the full package workflow is given in the coding block below.  This block would generate masks and plot image products for the molecular line H2CO 303-202, observed toward the protoplanetary disk J1604-2130 (which is included with the tutorial):
