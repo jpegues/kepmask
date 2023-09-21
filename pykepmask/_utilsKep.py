@@ -6,24 +6,26 @@
 
 
 ##BELOW SECTION: Imports necessary functions
+from . import _utilsAstro as astmod
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.ndimage as ndi
-try:
-    import astropy.constants as astconst
-    cconst = astconst.c.value #m/s
-    G0 = astconst.G.value #m^3/kg/s^2
-    au0 = astconst.au.value #m
-    pc0 = astconst.pc.value #m
-    msun = astconst.M_sun.value #kg
-    kB = astconst.k_B.value #J/K
-except ImportError:
-    cconst = 299792458 #m/s
-    G0 = 6.67384e-11 #m^3/kg/s^2
-    au0 = 1.49597871e+11 #m
-    pc0 = 3.08567758e+16 #m
-    msun = 1.9891e+30 #kg
-    kB = 1.38064852e-23 #J/K
+import time
+#try:
+import astropy.constants as astconst
+cconst = astconst.c.value #m/s
+G0 = astconst.G.value #m^3/kg/s^2
+au0 = astconst.au.value #m
+pc0 = astconst.pc.value #m
+msun = astconst.M_sun.value #kg
+kB = astconst.k_B.value #J/K
+#except ImportError:
+#    cconst = 299792458 #m/s
+#    G0 = 6.67384e-11 #m^3/kg/s^2
+#    au0 = 1.49597871e+11 #m
+#    pc0 = 3.08567758e+16 #m
+#    msun = 1.9891e+30 #kg
+#    kB = 1.38064852e-23 #J/K
 plt.close()
 pi = np.pi
 #
@@ -93,7 +95,7 @@ pi = np.pi
 ##      ...colorbar of any tests plotted
 ##NOTES:
 ##    - Units of radians, kg, and m/s as applicable, EXCEPT FOR BROADENING PARAMETER R0_AU, WHICH IS IN AU.
-def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, decwidth, velwidth, mstar, posang, incang, dist, sysvel, whichbroad, whichchans=None, freqlist=None, broadtherm_umol=None, broadtherm_mmol=None, broadtherm_alpha=None, broadtherm_Tqval=None, broadtherm_T0=None, broadtherm_r0=None, broadyen_pre0=None, broadyen_r0=None, broadyen_qval=None, pixelthres=1, beamfactor=1.0, return_purevelbins=False, rmcenbroad=True, do_cutoffbeforeconv=False, showtests=False, testsavename=None, showmidtests=False, midtestsavename=None, emsummask=None, rmax=None, cmap=graph.cm.hot_r):
+def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, decwidth, velwidth, mstar, posang, incang, dist, sysvel, whichbroad, whichchans=None, freqlist=None, broadtherm_umol=None, broadtherm_mmol=None, broadtherm_alpha=None, broadtherm_Tqval=None, broadtherm_T0=None, broadtherm_r0=None, broadyen_pre0=None, broadyen_r0=None, broadyen_qval=None, pixelthres=1, beamfactor=1.0, return_purevelbins=False, rmcenbroad=True, do_cutoffbeforeconv=False, showtests=False, testsavename=None, showmidtests=False, midtestsavename=None, emsummask=None, rmax=None, cmap=plt.cm.hot_r):
 	##Below Section: Raises an error if unknown broadening requested
 	allowedbroad = ["yen", "therm"]
 	if whichbroad not in allowedbroad:
@@ -158,7 +160,7 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, d
 					vmin=vdelttherm.min()/1.0E3,
 					vmax=vdelttherm.max()/1.0E3,
 					yscale=(180.0/pi*3600), xscale=(180.0/pi*3600),
-					cmap=graph.cm.RdBu_r, matrscale=1.0/1.0E3,
+					cmap=plt.cm.RdBu_r, matrscale=1.0/1.0E3,
 					suptitle=("Broadening width due to thermal: "
 						+"Stellar Mass = {0:.2f}".format(
 								mstar/1.0/msun)
@@ -167,8 +169,8 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, d
 						+(", Inc = %.2f deg" % (incang*180.0/pi))
 						+(", Dist = %.2f pc" % (dist/1.0/pc0))),
 					xlabel="RA [\"]", ylabel="DEC [\"]")
-				graph.savefig(testsavename)
-				graph.close()
+				plt.savefig(testsavename)
+				plt.close()
 				#Turbulence broadening width plot
 				astmod.plot_somematr(matr=vdeltturb,
 					x_arr=np.arange(0, xlen, 1),
@@ -176,7 +178,7 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, d
 					vmin=vdeltturb.min()/1.0E3,
 					vmax=vdeltturb.max()/1.0E3,
 					yscale=(180.0/pi*3600), xscale=(180.0/pi*3600),
-					cmap=graph.cm.RdBu_r, matrscale=1.0/1.0E3,
+					cmap=plt.cm.RdBu_r, matrscale=1.0/1.0E3,
 					suptitle=("Broadening width, turb./non-therm: "
 						+"Stellar Mass = {0:.2f}".format(
 								mstar/1.0/msun)
@@ -185,8 +187,8 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, d
 						+(", Inc = %.2f deg" % (incang*180.0/pi))
 						+(", Dist = %.2f pc" % (dist/1.0/pc0))),
 					xlabel="RA [\"]", ylabel="DEC [\"]")
-				graph.savefig(testsavename)
-				graph.close()
+				plt.savefig(testsavename)
+				plt.close()
 
 		#Below chooses broadening due to thermal motion and turbulence
 		elif whichbroad == "yen":
@@ -205,7 +207,7 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, d
 					vmin=vdeltyen.min()/1.0E3,
 					vmax=vdeltyen.max()/1.0E3,
 					yscale=(180.0/pi*3600), xscale=(180.0/pi*3600),
-					cmap=graph.cm.RdBu_r, matrscale=1.0/1.0E3,
+					cmap=plt.cm.RdBu_r, matrscale=1.0/1.0E3,
 					suptitle=("Broadening width, Yen+2016: "
 						+"Stellar Mass = {0:.2f}".format(
 								mstar/1.0/msun)
@@ -214,8 +216,8 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, d
 						+(", Inc = %.2f deg" % (incang*180.0/pi))
 						+(", Dist = %.2f pc" % (dist/1.0/pc0))),
 					xlabel="RA [\"]", ylabel="DEC [\"]")
-				graph.savefig(testsavename)
-				graph.close()
+				plt.savefig(testsavename)
+				plt.close()
 
 		#Below raises error, otherwise (but this error should never be reached)
 		else:
@@ -293,9 +295,9 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, d
 				triminds[1].min():triminds[1].max()+1]
 		kernel = kernel.astype(bool) #Convert to booleans
 		###!!!
-		#graph.title("Kernel, trimmed")
-		#graph.imshow(kernel, origin="lower")
-		#graph.show()
+		#plt.title("Kernel, trimmed")
+		#plt.imshow(kernel, origin="lower")
+		#plt.show()
 		###!!!
 
 		#Apply radial cutoff before convolution, if so desired
@@ -315,7 +317,7 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, d
 		convinds = np.where(convbool)[0] #Indices of those channels to convolve
 		allmasks[~convbool,:,:] = np.zeros(shape=(ylen, xlen)) #Throw out rejects
 		for ci in convinds: #Bit slower as a for loop, but allows progress checks
-			allmasks[ci,:,:] = conv_filter(actmatr=allmasks[ci],
+			allmasks[ci,:,:] = astmod.conv_filter(actmatr=allmasks[ci],
 							kernel=kernel) #Conv. kept masks
 			if ci % 5 == 0:
 				print("Ind. is {0} from {1}-{2} range."
@@ -337,7 +339,8 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, d
 		#Finalize the masks
 		#allmasks = allmasks.astype(bool)
 		curmasklist = allmasks.astype(bool)
-		print("Mask generation took {0}s.".format(time.time() - timestart).upper())
+		print("Mask generation took {0:.2}s."
+                .format(time.time() - timestart).upper())
 		###!!!
 		sepmasklist[ai] = curmasklist
 
@@ -390,7 +393,7 @@ def calc_Kepvelfield(xlen, ylen, midx, midy, rawidth, decwidth, mstar, posang, i
 			x_arr=np.arange(0, xlen, 1), y_arr=np.arange(0, ylen, 1),
 			vmin=velmatr.min()/1.0E3, vmax=velmatr.max()/1.0E3,
 			yscale=(180.0/pi*3600), xscale=(180.0/pi*3600),
-			cmap=graph.cm.RdBu_r, matrscale=1.0/1.0E3,
+			cmap=plt.cm.RdBu_r, matrscale=1.0/1.0E3,
 			suptitle=("Line-of-sight Velocity: "
 				+"Stellar Mass = {0:.2f}".format(mstar/1.0/msun)
 				+" Solar Masses"
@@ -399,8 +402,8 @@ def calc_Kepvelfield(xlen, ylen, midx, midy, rawidth, decwidth, mstar, posang, i
 				+(", Inc = %.2f deg" % (incang*180.0/pi))
 				+(", Dist = %.2f pc" % (dist/1.0/pc0))),
 			xlabel="RA [\"]", ylabel="DEC [\"]", cbartitle="km/s")
-		graph.savefig(testsavename)
-		graph.close()
+		plt.savefig(testsavename)
+		plt.close()
 
 
 	##Below Section: Returns the results
@@ -417,19 +420,6 @@ def calc_Kepvelfield(xlen, ylen, midx, midy, rawidth, decwidth, mstar, posang, i
 def calc_broad_yen(rmatr, r0=100, turbpreval=0.1*1E3, qval=0.2):
 	deltvmatr = turbpreval*((rmatr/1.0/(r0*au0))**(-1*qval)) #m/s
 	return 4*deltvmatr
-#
-
-
-
-##FUNCTION: conv_circle
-##PURPOSE: Convolves a given matrix with a Gaussian, truncated at a circle of the given radii.
-##NOTES:
-##    - Units of radians as applicable
-#def conv_circle(matr, bmaj, bmin, factor):
-    #Below applies and returns matrix smoothed over given area
-    #NOTE: For now, turns ovular beam into a circle
-#    trunc = np.sqrt(bmaj*bmin) #uses diameter, not radius ####/(4.0*np.log(2))) #circular radius approx. of gaus. beam
-#    return ndi.filters.gaussian_filter(matr, sigma=(trunc/1.0/factor))
 #
 
 

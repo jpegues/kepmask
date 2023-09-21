@@ -9,6 +9,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math as calc
+import scipy.ndimage as ndi
 import matplotlib.gridspec as gridder
 import matplotlib.patches as patch #For Ellipse package
 try:
@@ -17,21 +18,21 @@ except ImportError:
     import pyfits as fitter
 except ImportError:
     raise ImportError("Doesn't seem like you have a recognized module installed that will read in .fits files...  This file recognizes either astropy.io.fits or pyfits as such modules.  Please either install one of these modules or change the import settings within the share_modAstro.py script to import a fits file reader that you use.")
-try:
-    import astropy.constants as astconst
-    cconst = astconst.c.value #m/s
-    G0 = astconst.G.value #m^3/kg/s^2
-    au0 = astconst.au.value #m
-    pc0 = astconst.pc.value #m
-    msun = astconst.M_sun.value #kg
-    kB = astconst.k_B.value #J/K
-except ImportError:
-    cconst = 299792458 #m/s
-    G0 = 6.67384e-11 #m^3/kg/s^2
-    au0 = 1.49597871e+11 #m
-    pc0 = 3.08567758e+16 #m
-    msun = 1.9891e+30 #kg
-    kB = 1.38064852e-23 #J/K
+#try:
+import astropy.constants as astconst
+cconst = astconst.c.value #m/s
+G0 = astconst.G.value #m^3/kg/s^2
+au0 = astconst.au.value #m
+pc0 = astconst.pc.value #m
+msun = astconst.M_sun.value #kg
+kB = astconst.k_B.value #J/K
+#except ImportError:
+#    cconst = 299792458 #m/s
+#    G0 = 6.67384e-11 #m^3/kg/s^2
+#    au0 = 1.49597871e+11 #m
+#    pc0 = 3.08567758e+16 #m
+#    msun = 1.9891e+30 #kg
+#    kB = 1.38064852e-23 #J/K
 plt.close()
 pi = np.pi
 #
@@ -87,6 +88,7 @@ def extract_fits(filename, filetype, restfreq=None):
 		fitdict["raarr"] = (((np.arange(ralen)+1 - racenind)*rawidth)
 					+ racenval)
 		fitdict["rawidth"] = rawidth
+		fitdict["ralen"] = ralen
 		#
 		deccenval = openfit[0].header["CRVAL2"] #degree
 		deccenind = openfit[0].header["CRPIX2"] #index
@@ -94,6 +96,7 @@ def extract_fits(filename, filetype, restfreq=None):
 		fitdict["decarr"] = (((np.arange(declen)+1 - deccenind)*decwidth)
 					+ deccenval)
 		fitdict["decwidth"] = decwidth
+		fitdict["declen"] = declen
 		#fitdict["raarr"] = np.array([(ra0 + (ei*rawidth))
 		#				for ei in range(0, ralen)])
 		#fitdict["decarr"] = np.array([(dec0 + (ei*decwidth))
@@ -426,15 +429,15 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr, bmaj
 	#Below generates overall plot and scales the plot uniformly
 	plotxlen = (plotscale+(nrow*spec))*(lrtot/1.0/tbtot) #Size of overall plot x-axis
 	plotylen = (plotscale+(nrow*spec)) #Size of overall plot y-axis
-	fig = graph.figure(figsize=(plotxlen, plotylen)) #Overall figure
+	fig = plt.figure(figsize=(plotxlen, plotylen)) #Overall figure
 
 	#Below iterates through and plots each desired channel of the channel map
 	for bi in range(0, len(velplot_arr)): #Iterate through channels
 		#Below sets up the base subplot and its ticks for this current channel
-		plothere = graph.subplot(gridlist[bi][0,0], aspect=1)
+		plothere = plt.subplot(gridlist[bi][0,0], aspect=1)
 		plothere.tick_params(width=tickwidth, size=tickheight,
 					labelsize=ticksize) #Axis tick sizes
-		graph.locator_params(nbins=6) #Number of ticks
+		plt.locator_params(nbins=6) #Number of ticks
 		tickdict = calc_cbarticks(vmin=vmin, vmax=vmax) #Ticks for colorbar
 
 		#Below plots current channel
@@ -451,7 +454,7 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr, bmaj
 				colors=ccolor, linestyles=cstyle)
 
 		#Below puts in an in-graph label of velocity
-		graph.text(velx, vely, "{:.1f}km/s".format(velplot_arr[bi]),
+		plt.text(velx, vely, "{:.1f}km/s".format(velplot_arr[bi]),
 			bbox=dict(facecolor=velboxcolor, alpha=velalpha,
 							edgecolor=velboxedge),
 			fontsize=textsize, transform=plothere.transAxes)
@@ -508,7 +511,7 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr, bmaj
 		cbar_ax = fig.add_axes([righthere, (tbtot-tbmargin-subwidth)/tbtot,
 					(1-cbarmargin)/4.0,
 					subwidth/1.0/tbtot]) #left, bot, width, height
-		cbar = graph.colorbar(maphere, ticks=cbartickvals,
+		cbar = plt.colorbar(maphere, ticks=cbartickvals,
 						cax=cbar_ax) #Colorbar itself
 		cbar.ax.set_yticklabels(cbarticknames) #Labels colorbar ticks
 		cbar.set_label(cbarlabel, fontsize=titlesize, rotation=270,
@@ -547,7 +550,7 @@ def calc_cbarticks(vmin, vmax):
 
 	#Below determines tick values
 	tickvals = np.linspace(calc.floor(vmin),
-				calc.ceil(vmax), numticks+1) #Values for each tick
+				calc.ceil(vmax), numticks, endpoint=True) #Values for each tick
 
 	#Below determines tick labels
 	ticknames = [""]*numticks #Initialize a list of ticks with no labels
@@ -588,6 +591,31 @@ def calc_beamarea(bmaj, bmin, units, rawidth=None, decwidth=None):
 	elif units == "pix":
 		pixradarea = np.abs(rawidth*decwidth) #Pixel area [rad^2]
 		return (beamradarea/1.0/pixradarea) #[pix/beam]
+#
+
+
+
+##FUNCTION: conv_circle
+##PURPOSE: Convolves a given matrix with a Gaussian, truncated at a circle of the given radii.
+##NOTES:
+##    - Units of radians as applicable
+def conv_circle(matr, bmaj, bmin, factor):
+    #Below applies and returns matrix smoothed over given area
+    #NOTE: For now, turns ovular beam into a circle
+    trunc = np.sqrt(bmaj*bmin) #uses diameter, not radius ####/(4.0*np.log(2))) #circular radius approx. of gaus. beam
+    return ndi.filters.gaussian_filter(matr, sigma=(trunc/1.0/factor))
+
+
+
+
+##FUNCTION: conv_filter
+##PURPOSE: Convolves a given matrix with a given beam.
+##NOTES:
+##	- Units of radians as applicable
+def conv_filter(actmatr, kernel):
+	##Below Section: Convolves the image with the kernel
+	return ndi.convolve(input=actmatr, weights=kernel,
+                        mode="constant", cval=0.0)
 #
 
 

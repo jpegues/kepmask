@@ -188,7 +188,7 @@ class KepMask():
             - 3th dimension = R.A.
         """
         #Call on a utils method to extract the .fits information.
-        self._imdict = astmod.extract_fits(
+        self._imdict = astmod.extract_fits(filetype="chan",
                                 filename=fitsname, restfreq=restfreq)
     #
 
@@ -223,7 +223,7 @@ class KepMask():
                                     bmin=bmin, bpa=bpa)
     #
 
-    def generate(self, whichchans=None, hypfreqs=None, showtests=False, V0_ms=300.0, R0_AU=100.0, q0=0.3, mask_override=None, mask_Rmax=None, beamfactor=3.0, beamcut=0.03):
+    def generate(self, whichchans=None, hypfreqs=None, showtests=False, whichbroad="yen", V0_ms=300.0, R0_AU=100.0, q0=0.3, mask_override=None, mask_Rmax=None, beamfactor=3.0, beamcut=0.03):
         """
         METHOD: generate
         PURPOSE: Generate a Keplerian mask for the previously-stored image cube.
@@ -299,10 +299,6 @@ class KepMask():
         #       have masks that are too big than masks that are too small.
         bmax = max([imdict["bmaj"], imdict["bmin"]])
 
-        #Determine R.A. and Decl. axes, offset from midpoint.
-        radeltarr = imdict["raarr"] - imdict["raarr"][paramdict["midx"]]
-        decdeltarr = imdict["decarr"] - imdict["decarr"][paramdict["midy"]]
-
         #Call on a utils method to calculate the Keplerian masks.
         maskall = kepmod.calc_Kepvelmask(
             xlen=imdict["ralen"], ylen=imdict["declen"], bmin=bmax,
@@ -312,8 +308,7 @@ class KepMask():
             velwidth=imdict["velwidth"], mstar=paramdict["mstar"],
             posang=paramdict["PA"], incang=paramdict["inc"],
             dist=paramdict["dist"], sysvel=paramdict["vsys"],
-            radeltarr=radeltarr, decdeltarr=decdeltarr,
-            beamfactor=beamfactor, beamcut=beamcut, freqlist=hypfreqs,
+            beamfactor=beamfactor, freqlist=hypfreqs, whichbroad=whichbroad,
             broadyen_pre0=V0_ms, broadyen_r0=R0_AU, broadyen_qval=q0,
             showtests=showtests, emsummask=mask_override, rmax=mask_Rmax)
         #Nullify masks in undesired channels
@@ -332,7 +327,7 @@ class KepMask():
         #Calculate the beam area [pix]
         beamarea = astmod.calc_beamarea(bmaj=imdict["bmaj"],
                             bmin=imdict["bmin"], rawidth=imdict["rawidth"],
-                            decwidth=imdict["decwidth"])
+                            decwidth=imdict["decwidth"], units="rad")
         #Convert the raw spectrum from [Jy/beam] to [Jy]
         specarr = specarr_raw/1.0/beamarea #[Jy/beam] -> [Jy]
         #Record the converted spectrum
