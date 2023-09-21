@@ -52,7 +52,7 @@ def extract_fits(filename, restfreq=None):
     #Below Section: Extracts info from the file
     openfit = fitter.open(filename)
     fitdict = {} #To hold extracted info
-    
+
     #For emission and associated lengths
     emmatr = openfit[0].data[0]
     fitdict["emmatr"] = emmatr
@@ -62,7 +62,7 @@ def extract_fits(filename, restfreq=None):
     fitdict["nchan"] = nchan
     fitdict["ralen"] = ralen
     fitdict["declen"] = declen
-    
+
     #For emission-specific info, such as array and beam dimensions
     #For RA and DEC
     ra0 = openfit[0].header["CRVAL1"]*pi/180.0 #[deg] -> [rad]
@@ -75,7 +75,7 @@ def extract_fits(filename, restfreq=None):
     fitdict["decarr"] = np.array([(dec0 + (ei*decwidth))
                     for ei in range(0, declen)])
     fitdict["decwidth"] = decwidth
-    
+
     #For beam
     try: #If same beam for each channel
         fitdict["bmaj"] = openfit[0].header["BMAJ"]*pi/180.0 #[deg] -> [rad], full axis
@@ -114,7 +114,7 @@ def extract_fits(filename, restfreq=None):
         fitdict["bmaj"] = tempbmajmean/3600.0*pi/180 #arcsec->rad, full axis
         fitdict["bmin"] = tempbminmean/3600.0*pi/180 #arcsec->rad, full axis
         fitdict["bpa"] = tempbpamean*pi/180.0 #[deg] -> [rad]
-    
+
     #For velocity
     vel0 = openfit[0].header["CRVAL3"] #m/s
     velwidth = openfit[0].header["CDELT3"] #m/s
@@ -126,7 +126,7 @@ def extract_fits(filename, restfreq=None):
         actvelarr = conv_freqtovel(freq=velarr, restfreq=restfreq)
         fitdict["velarr"] = actvelarr
         fitdict["velwidth"] = actvelarr[1] - actvelarr[0]
-    
+
     #Below closes fits file out of politeness
     openfit.close()
     #Below Section: Returns the extracted information in dictionary form
@@ -216,7 +216,7 @@ def extract_fits(filename, restfreq=None):
 ##    - titlesize [int/float; default=14]: Font size for plot title
 ##    - tickwidth [int/float; default=3] #Width of ticks
 ##    - tickheight [int/float; default=4] #Height of ticks
-##    
+##
 ##    User-Defined Box Parameters
 ##    - boxtexts [list of str; default=None]: Strings that can be plotted as...
 ##       ...in-graph labels (useful, for example, for plotting a source's name);...
@@ -232,17 +232,8 @@ def extract_fits(filename, restfreq=None):
 ##       ...where 0 will put the label all the way to the bottom of the channel...
 ##       ...and 1 will put the label all the way to the top
 ##NOTES:
-##    - 
-def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr,
-            bmaj, bmin, bpa, velall_arr, cmap, velx=0.10, vely=0.85, ncol=7,
-            velalpha=0.6, velboxcolor="white", velboxedge="white",
-            vmin=0, vmax=None, plotscale=7, spec=2,
-            cstyle="--", cwidth=2, ccolor="black", calpha=0.7,
-            xlabel="", ylabel="", tickwidth=3, tickheight=5,
-            boxtexts=None, boxxs=[0.05], boxys=[0.90], boxind=0,
-            docbar=False, cbarlabel="", xlim=[-5,5], ylim=[-5,5],
-            beamx=0.80, beamy=0.80, ticksize=14, textsize=14, titlesize=14,
-            plotbeam=False):
+##    -
+def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr, bmaj, bmin, bpa, velall_arr, cmap, velx=0.10, vely=0.85, ncol=7, velalpha=0.6, velboxcolor="white", velboxedge="white", vmin=0, vmax=None, plotscale=7, spec=2, cstyle="--", cwidth=2, ccolor="black", calpha=0.7, xlabel="", ylabel="", tickwidth=3, tickheight=5, boxtexts=None, boxxs=[0.05], boxys=[0.90], boxind=0, docbar=False, cbarlabel="", xlim=[-5,5], ylim=[-5,5], beamx=0.80, beamy=0.80, ticksize=14, textsize=14, titlesize=14, plotbeam=False):
     ##Below Section: Extracts desired channels, velocities, and masks for the disk
     if whichchan_list is not None: #If particular channels desired
         chanplot_list = chanall_list[whichchan_list].copy() #Desired channels
@@ -256,11 +247,11 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr,
         maskplot_list = maskall_list[whichchan_list].astype(float) #Desired masks
     elif maskall_list is not None:
         maskplot_list = maskall_list.astype(float) #Desired masks, all channels
-    
+
     #Below determines extent of rows across channel map, given the number of columns
     nrow = ((len(velplot_arr) - 1)//ncol) + 1
-    
-    
+
+
     ##Below Section: Determines where in channels to measure vmin and vmax...
     #... if vmin and/or vmax not given
     if (vmin is None) or (vmax is None):
@@ -279,7 +270,7 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr,
             rtemp = rhere
             rhere = lhere
             lhere = rtemp
-        
+
         #Below determines y-axis range for measuring vmin and vmax
         #If no y-axis plotting range (ylim) given, will take vmin and/or vmax...
         #...over entire y-axis span for the channels
@@ -295,7 +286,7 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr,
             btemp = bhere
             bhere = there
             there = btemp
-    
+
     #Below calculates vmin and vmax values for overall channel map, if not given
     if vmin is None: #Takes min. emission across channel map to be vmin
         #NOTE: Measures vmin within xlim and ylim, if xlim and/or ylim given
@@ -305,8 +296,8 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr,
         #NOTE: Measures vmax within xlim and ylim, if xlim and/or ylim given
         vmax = calc.ceil(max([chere[there:bhere+1,lhere:rhere+1].max()
                     for chere in chanplot_list]))
-    
-    
+
+
     ##Below Section: Generates subplots on a snazzy grid
     #Below determines parameters of grid
     #Left-right parameters
@@ -317,33 +308,33 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr,
     #Top-bottom parameters
     subwidth = sublength #Equal-sized plots (length = width)
     tbmargin = 0.12 #Margin at each top and bottom side of overall figure
-    tbtot = ((subwidth*nrow) + (2.0*tbmargin)) #Total height of full figure    
-    
+    tbtot = ((subwidth*nrow) + (2.0*tbmargin)) #Total height of full figure
+
     #Below determines the grid locations themselves for the subplots
     gridlist = [] #List to hold grid locations
     for vi in range(0, len(velplot_arr)): #Iterates through needed subplots
         #Below calculates current column and row location
         ri = vi // ncol #Row index
         ci = vi % ncol #Column index
-    
+
         #Below calculates location of current subplot within the grid
         tophere = (1 - (tbmargin/tbtot) - (ri*subwidth/tbtot)) #Top location
         bothere = (1 - (tbmargin/tbtot) - ((ri+1)*subwidth/tbtot)) #Bottom loc.
         lefthere = ((lrmargin/lrtot) + (ci*sublength/lrtot)) #Left loc.
         righthere = ((lrmargin/lrtot) + ((ci+1)*sublength/lrtot)) #Right loc.
-        
+
         #Below records current subplot grid location
         gridlist.append(gridder.GridSpec(1,1))
         gridlist[-1].update(top=tophere, bottom=bothere,
                     left=lefthere, right=righthere)
-    
-    
+
+
     #Below Section: Plots the subplots at determined grid locations
     #Below generates overall plot and scales the plot uniformly
     plotxlen = (plotscale+(nrow*spec))*(lrtot/1.0/tbtot) #Size of overall plot x-axis
     plotylen = (plotscale+(nrow*spec)) #Size of overall plot y-axis
     fig = plt.figure(figsize=(plotxlen, plotylen)) #Overall figure
-    
+
     #Below iterates through and plots each desired channel of the channel map
     for bi in range(0, len(velplot_arr)): #Iterate through channels
         #Below sets up the base subplot and its ticks for this current channel
@@ -352,40 +343,40 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr,
                 labelsize=ticksize, direction="in") #Axis tick sizes
         plt.locator_params(nbins=6) #Number of ticks
         tickdict = calc_cbarticks(vmin=vmin, vmax=vmax) #Ticks for colorbar
-        
+
         #Below plots current channel
         maphere = plothere.contourf(x_arr, y_arr,
                 chanplot_list[bi], tickdict["tickhids"],
                 vmin=vmin, vmax=vmax,
                 cmap=cmap)
-        
+
         #Below plots current mask contour over current channel, if desired
         if maskplot_list is not None:
             plothere.contour(x_arr, y_arr,
                 maskplot_list[bi],
                 [-1,0,1,2], alpha=calpha, linewidths=cwidth,
                 colors=ccolor, linestyles=cstyle)
-        
+
         #Below puts in an in-graph label of velocity
         plt.text(velx, vely, "{:.2f}km/s".format(velplot_arr[bi]),
             bbox=dict(facecolor=velboxcolor, alpha=velalpha,
                             edgecolor=velboxedge),
             fontsize=textsize, transform=plothere.transAxes)
-        
+
         #Below handles this channel's ticks and tick labels; removes if need be
         if bi == (ncol*(nrow - 1)): #Bottom-most channel keeps its tick labels
             plothere.set_xlabel(xlabel, fontsize=titlesize)
             plothere.set_ylabel(ylabel, fontsize=titlesize)
         else: #Otherwises, strips away tick labels
             plothere.tick_params(labelbottom=False, labelleft=False)
-        
+
         #Below zooms in on plot, if so desired
         if xlim is not None: #For x-axis range
             plothere.set_xlim(xlim)
         if ylim is not None: #For y-axis range
             plothere.set_ylim(ylim)
         plothere.set_xlim(maphere.ax.get_xlim()[::-1]) #Makes x-axis descend
-        
+
         #Below adds in any in-graph labels to this channel, if so desired
         if (boxtexts is not None) and (bi == boxind):
             for ci in range(0, len(boxtexts)):
@@ -395,7 +386,7 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr,
                             edgecolor="white"),
                     fontsize=textsize,
                     transform=plothere.transAxes)
-        
+
         #Below plots the beam, if so desired
         if (bi == (ncol*(nrow - 1))) and plotbeam: #Plots on bottommost-left
             yspan = plothere.get_ylim() #ybounds of this subplot
@@ -411,8 +402,8 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr,
             ellhere.set_facecolor("gray")
             ellhere.set_edgecolor("black")
             plothere.add_artist(ellhere)
-    
-    
+
+
     ##Below Section: Generates a colorbar, if so desired
     if docbar:
         #Below prepares ticks for the colorbar
@@ -420,7 +411,7 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr,
         plottickvals = tickdict["tickhids"] #Plot colors
         cbartickvals = tickdict["tickshows"] #Colorbar tick values
         cbarticknames = tickdict["ticknames"] #Colorbar tick labels
-        
+
         #Below generates the colorbar
         if len(velplot_arr) >= ncol: #If more channels than column size
             cbarright = ((lrmargin/lrtot) + (ncol*sublength/lrtot))
@@ -446,13 +437,13 @@ def plot_channels(chanall_list, maskall_list, whichchan_list, x_arr, y_arr,
 ##    - vmin [int/float]: Minimum value to show on the plot's colorbar
 ##    - vmax [int/float]: Maximum value to show on the plot's colorbar
 ##NOTES:
-##    - 
+##    -
 def calc_cbarticks(vmin, vmax):
     #Below calculates total tick range
     numticks = int(calc.ceil(vmax - vmin))
     if numticks < 5: #If weird (such as 0-1) tick range given
         numticks = 10
-    
+
     #Below determines interval of ticks
     if numticks < 15:
         tickinv = 2
@@ -466,14 +457,14 @@ def calc_cbarticks(vmin, vmax):
         tickinv = 50
     else:
         tickinv = 100
-    
+
     #Below determines tick values and labels
     tickhids = np.linspace(vmin,
                 calc.ceil(vmax)+1, 20) #Values per tick
     tickshows = np.arange((calc.ceil(vmin/1.0/tickinv)*tickinv),
                 calc.ceil(vmax)+1, tickinv).astype(int)
     ticknames = tickshows.astype(str) #Tick labels
-    
+
     #Below returns the determined tick characteristics
     return {"tickinv":tickinv, "tickhids":tickhids,
                 "tickshows":tickshows, "ticknames":ticknames}
@@ -497,7 +488,3 @@ def calc_beamarea(bmaj, bmin, rawidth, decwidth):
     #Return the beam area
     return beamarea
 #
-
-
-
-

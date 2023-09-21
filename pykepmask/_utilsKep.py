@@ -77,7 +77,7 @@ pi = np.pi
 ##    - beamfactor [int/float; default=3.0]: See conv_circle() function in this script
 ##    - ...Controls beam convolution approximation.
 ##    - beamcut [int/float; default=0.3]: Controls beam convolution normalization.
-##    
+##
 ##    Broadening Parameters
 ##    Yen et al. 2016 Broadening Parameters
 ##    - broadyen_pre0 [float [m/s]; default=None]: pre-factor for Yen et al. 2016...
@@ -93,19 +93,13 @@ pi = np.pi
 ##      ...colorbar of any tests plotted
 ##NOTES:
 ##    - Units of radians, kg, and m/s as applicable, EXCEPT FOR BROADENING PARAMETER R0_AU, WHICH IS IN AU.
-def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
-            rawidth, decwidth, velwidth, mstar, posang, incang, dist,
-            sysvel, freqlist=None,
-            broadyen_pre0=None, broadyen_r0=None, broadyen_qval=None,
-            beamfactor=3.0, beamcut=0.03,
-            showtests=False, radeltarr=None, decdeltarr=None,
-            emsummask=None, rmax=None, cmap=plt.cm.hot_r):
+def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, decwidth, velwidth, mstar, posang, incang, dist, sysvel, freqlist=None, broadyen_pre0=None, broadyen_r0=None, broadyen_qval=None, beamfactor=3.0, beamcut=0.03, showtests=False, radeltarr=None, decdeltarr=None, emsummask=None, rmax=None, cmap=plt.cm.hot_r):
     ##Below Section: Raises warning if conflicts in desired cutoffs
     if (emsummask is not None) and (rmax is not None): #Warning if both given
         print("Both mask-override and max. R specified! Choosing max. R.")
         emsummask = None
-    
-    
+
+
     ##Below Section: If hyperfine lines, prepares velocity shifts of multiple masks
     if freqlist is not None: #If hyperfine/combined masks desired
         #Below calculates velocity shifts
@@ -115,8 +109,8 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
     else: #If no hyperfine lines given, will just calculate 1 mask set as normal
         sysvelarr = [sysvel]
     sepmasklist = [None]*len(sysvelarr) #Relevant only if hyperfine masks desired
-    
-    
+
+
     ##Below Section: Calculates expected velocity field for the given disk
     ##NOTE: For hyperfine/combined masks, calculates each mask separately;...
     ##    technically they could be calculated simultaneously, but for now are...
@@ -130,8 +124,8 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
         velmatr = dictres["velmatr"] #Deprojected velocities in [m/s]
         rmatr = dictres["rmatr"] #Deprojected radii in [m]
         yoverr = dictres["y/r"] #y-axis over r [unitless ratio]
-        
-        
+
+
         ##Below Section: Incorporates broadening due to Yen+2016
         vdeltyen = calc_broad_yen(rmatr=rmatr, turbpreval=broadyen_pre0,
                     r0=broadyen_r0, qval=broadyen_qval)
@@ -153,8 +147,8 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
             plt.ylabel("DEC [\"]")
             cbar.set_label(r"km s$^{-1}$", rotation=270, labelpad=20)
             plt.show()
-        
-        
+
+
         #Below Section: Calculates velocity masks (when velocities in ranges)
         curmasklist = [] #To hold current mask set
         for vi in range(0, len(vel_arr)):
@@ -163,20 +157,20 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
             maskhere = ((velmatr >= velhere - (quadwidth/2.0))
                     *(velmatr <= velhere + (quadwidth/2.0))
                                     ).astype(float)
-        
+
             #Below converts beam from radian units to pixel (pts) units
             beamsetptshere = change_beamradtopts(bmaj=bmaj, bmin=bmin,
                     bpa=bpa, rawidth=rawidth, decwidth=decwidth)
             bmajpts = beamsetptshere[0] #[pts]
             bminpts = beamsetptshere[1] #[pts]
-        
+
             #Below applies approx. beam conv. (doesn't account for direction)
             maskhere = conv_circle(matr=maskhere, bmaj=bmajpts, bmin=bminpts,
                         factor=beamfactor)
             if maskhere.max() != 0: #If actual mask there; avoids 0/0
                 maskhere = maskhere/1.0/maskhere.max() #Scales so max=1
             maskhere[maskhere < beamcut] = 0 #Chops mask at given norm. cut
-            
+
             #Below applies radial cutoffs, if so desired
             if emsummask is not None: #If overall mask of emission given
                 maskhere[~emsummask] = 0
@@ -184,8 +178,8 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
                 maskhere[rmatr > rmax] = 0
             maskhere = maskhere.astype(bool)
             curmasklist.append(maskhere)
-        
-        
+
+
         #Below Section: "Interpolates" for masks not shown due to low pixel res.
         sysloc = np.argmin(np.abs(vel_arr - sysvelarr[ai])) #Ind. nearest sys vel
         #Below checks masks to the left of the systemic velocity (sys vel)
@@ -196,7 +190,7 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
             if ((curmasklist[vi].max() == False)
                         and (curmasklist[vi-1].max() == True)):
                 curmasklist[vi] = curmasklist[vi-1].copy() #Copy mask
-        
+
         #Below checks masks at AND to the right of the systemic velocity
         for vi in range(sysloc, len(vel_arr))[::-1]: #Reversed direction
             if (vi == len(vel_arr) - 1): #If at end of channels
@@ -205,17 +199,17 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
             if ((curmasklist[vi].max() == False)
                         and (curmasklist[vi+1].max() == True)):
                 curmasklist[vi] = curmasklist[vi+1].copy() #Copy mask
-        
+
         #Below records this mask set within the overall mask list
         sepmasklist[ai] = curmasklist
-    
-    
+
+
     ##Below Section: Adds mask sets (relevant only if hyperfine masks desired)
     finalmasklist = np.asarray(sepmasklist[0]).copy()
     for ai in range(1, len(sysvelarr)):
         finalmasklist = finalmasklist + np.asarray(sepmasklist[ai])
-    
-    
+
+
     ##Below Section: Returns calculated mask set
     return finalmasklist.astype(bool)
 #
@@ -228,31 +222,29 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
 ##   Yen et al. 2016: http://iopscience.iop.org/article/10.3847/0004-637X/832/2/204/pdf
 ##NOTES:
 ##    -
-def calc_Kepvelfield(xlen, ylen, midx, midy, rawidth, decwidth, mstar, posang, incang,
-            dist, sysvel, rmax=None, showtests=False,
-            radeltarr=None, decdeltarr=None):
+def calc_Kepvelfield(xlen, ylen, midx, midy, rawidth, decwidth, mstar, posang, incang, dist, sysvel, rmax=None, showtests=False, radeltarr=None, decdeltarr=None):
     ##Below Section: Calculates deprojected radius matrix and velocity matrix
     #x,y in angular space
     indmatrs = np.indices(np.zeros(shape=(ylen, xlen)).shape)
     xangmatr = (indmatrs[1] - midx)*rawidth #radians
     yangmatr = (indmatrs[0] - midy)*decwidth #radians
-    
+
     #Below rotates angular indices (clockwise!) by position angle
     xrotangmatr = (xangmatr*np.cos(posang)) + (yangmatr*np.sin(posang)) #radians
     yrotangmatr = (yangmatr*np.cos(posang)) - (xangmatr*np.sin(posang)) #radians
-    
+
     #Below calculates deprojected radius matrix in physical units
     rangmatr = np.sqrt((xrotangmatr**2)
                 + ((yrotangmatr/1.0/np.cos(incang))**2)) #Radius in [rad]
     rposmatr = np.tan(rangmatr)*dist #Radii in physical units
-    
-    
+
+
     ##Below Section: Calculates deprojected velocity matrix
     velmatr = ((xrotangmatr/1.0/rangmatr)
                 *np.sin(incang)*np.sqrt(G0*mstar/1.0/rposmatr))
     velmatr = velmatr + sysvel #Adds in systemic velocity
     velmatr[rposmatr == 0] = sysvel #Sets central value with 0 (since nan where r=0)
-    
+
     #Tests, if so desired
     if showtests:
             #Plot the line-of-sight velocity
@@ -270,8 +262,8 @@ def calc_Kepvelfield(xlen, ylen, midx, midy, rawidth, decwidth, mstar, posang, i
             plt.ylabel("DEC [\"]")
             cbar.set_label(r"km s$^{-1}$", rotation=270, labelpad=20)
             plt.show()
-    
-    
+
+
     ##Below Section: Returns the results
     return {"velmatr":velmatr, "rmatr":rposmatr, "y/r":(yrotangmatr/1.0/rangmatr)}
 #
@@ -321,21 +313,18 @@ def change_beamradtopts(bmaj, bmin, bpa, rawidth, decwidth):
     bmaj_yrad = bmaj*np.cos(bpa)
     bmaj_xpts = bmaj_xrad/1.0/rawidth #Converts to pts
     bmaj_ypts = bmaj_yrad/1.0/decwidth #Converts to pts
-    
+
     #Next projects bmin to x[rad] and y[rad] coordinates
     #Note that x-cos and y-sin; since for bmin, PA measured East to South
     bmin_xrad = bmin*np.cos(bpa)
     bmin_yrad = bmin*np.sin(bpa)
     bmin_xpts = bmin_xrad/1.0/rawidth #Converts to pts
     bmin_ypts = bmin_yrad/1.0/decwidth #Converts to pts
-    
+
     #Finally calculates the length for bmaj and bmin in points
     bmajpts = np.sqrt((bmaj_xpts * bmaj_xpts) + (bmaj_ypts * bmaj_ypts)) #[pts]
     bminpts = np.sqrt((bmin_xpts * bmin_xpts) + (bmin_ypts * bmin_ypts)) #[pts]
-    
+
     #Below returns bmaj and bmin in pts units
     return [bmajpts, bminpts]
 #
-
-
-
