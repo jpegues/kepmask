@@ -192,6 +192,37 @@ class KepMask():
                                 filename=fitsname, restfreq=restfreq)
     #
 
+    def synthesize(self, nchan, ralen, rastart, rawidth, declen, decstart, decwidth, velstart, velwidth, bmaj, bmin, bpa):
+        """
+        METHOD: synthesize
+        PURPOSE: Generate and load in a synthetic image cube.
+        INPUTS:
+          - nchan [int]: Number of channels in the synthetic image.
+          - ralen [int]: Number of points along the RA axis (x-axis).
+          - rastart [float, radians]: Starting value for array of RA points.
+          - rawidth [float, radians]: Spacing between points in the RA array.
+          - declen [int]: Number of points along the DEC axis (y-axis).
+          - decstart [float, radians]: Starting value for array of DEC points.
+          - decwidth [float, radians]: Spacing between points in the DEC array.
+          - velstart [float, m/s]: Starting value for array of velocity points.
+          - velwidth [float, m/s]: Spacing between points in the velocity array.
+          - bmaj [float, radians]: Length of the full major axis of the beam.
+          - bmin [float, radians]: Length of the full minor axis of the beam.
+          - bpa [float, radians]: Position angle of the beam.
+        OUTPUTS:
+          - N/A
+        NOTES:
+          - N/A
+        """
+        #Call on a utils method to extract the .fits information.
+        self._imdict = astmod.synthesize_image(nchan=nchan, ralen=ralen,
+                                    rastart=rastart, rawidth=rawidth,
+                                    declen=declen, decstart=decstart,
+                                    velstart=velstart, velwidth=velwidth,
+                                    decwidth=decwidth, bmaj=bmaj,
+                                    bmin=bmin, bpa=bpa)
+    #
+
     def generate(self, whichchans=None, hypfreqs=None, showtests=False, V0_ms=300.0, R0_AU=100.0, q0=0.3, mask_override=None, mask_Rmax=None, beamfactor=3.0, beamcut=0.03):
         """
         METHOD: generate

@@ -145,12 +145,12 @@ def extract_fits(filename, restfreq=None):
 ##    - restfreq [int/float; default=None]: If "chan" .fits files are in frequency...
 ##       ...units, then restfreq must be set to the line's rest frequency
 ##NOTES:
-def synthesize_image(nchan, ralen, rastart, rawidth, declen, decstart, decwidth, bmaj, bmin, bpa):
+def synthesize_image(nchan, ralen, rastart, rawidth, declen, decstart, decwidth, velstart, velwidth, bmaj, bmin, bpa):
     #Below Section: Creates dictionary of synthetic image information
     imdict = {} #To hold extracted info
 
     #For emission and associated lengths
-    imdict["emmatr"] = np.zeros(shape=(declen, ralen))
+    imdict["emmatr"] = np.zeros(shape=(nchan, declen, ralen))
     imdict["nchan"] = nchan
     imdict["ralen"] = ralen
     imdict["declen"] = declen
