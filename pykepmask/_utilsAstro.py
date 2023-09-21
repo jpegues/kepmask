@@ -135,6 +135,52 @@ def extract_fits(filename, restfreq=None):
 
 
 
+##FUNCTION: synthesize_image
+##PURPOSE: Builds a synthetic image from given image parameters.
+##INPUTS:
+##    - filename [str; required]: Filename (including its path from...
+##       ...current directory); should be a .fits file
+##    - filetype ["cont" or "chan"; required]: "cont" for continuum .fits...
+##       ...or "chan" for channel map .fits
+##    - restfreq [int/float; default=None]: If "chan" .fits files are in frequency...
+##       ...units, then restfreq must be set to the line's rest frequency
+##NOTES:
+def synthesize_image(nchan, ralen, rastart, rawidth, declen, decstart, decwidth, bmaj, bmin, bpa):
+    #Below Section: Creates dictionary of synthetic image information
+    imdict = {} #To hold extracted info
+
+    #For emission and associated lengths
+    imdict["emmatr"] = np.zeros(shape=(declen, ralen))
+    imdict["nchan"] = nchan
+    imdict["ralen"] = ralen
+    imdict["declen"] = declen
+
+    #For emission-specific info, such as array and beam dimensions
+    #For RA and DEC
+    imdict["raarr"] = np.array([(rastart + (ii*rawidth))
+                                for ii in range(0, ralen)]) #Array of RA [rad]
+    imdict["rawidth"] = rawidth #Spacing between RA points
+    imdict["decarr"] = np.array([(decstart + (ii*decwidth))
+                                for ii in range(0, declen)]) #Array of DEC [rad]
+    imdict["decwidth"] = decwidth #Spacing between DEC points
+
+    #For beam
+    imdict["bmaj"] = bmaj #[rad], full axis
+    imdict["bmin"] = bmin #[rad], full axis
+    imdict["bpa"] = bpa #[rad]
+
+    #For velocity
+    velarr = np.array([(velstart + (ii*velwidth))
+                        for ii in range(0, nchan)]) #[m/s]
+    imdict["velarr"] = velarr
+    imdict["velwidth"] = velwidth
+
+    #Below Section: Returns the extracted information in dictionary form
+    return imdict #Degrees and m/s as applicable
+#
+
+
+
 ##FUNCTION: plot_channels
 ##PURPOSE: Generates a series of channel maps.
 ##INPUTS:
