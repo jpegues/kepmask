@@ -223,7 +223,7 @@ class KepMask():
                                     bmin=bmin, bpa=bpa)
     #
 
-    def generate(self, whichchans=None, hypfreqs=None, showtests=False, whichbroad="yen", V0_ms=300.0, R0_AU=100.0, q0=0.3, mask_override=None, mask_Rmax=None, beamfactor=3.0, beamcut=0.03):
+    def generate(self, whichchans=None, hypfreqs=None, showtests=False, whichbroad="yen", whichconv="circle", V0_ms=300.0, R0_AU=100.0, q0=0.3, mask_override=None, mask_Rmax=None, beamfactor=3.0, beamcut=0.03):
         """
         METHOD: generate
         PURPOSE: Generate a Keplerian mask for the previously-stored image cube.
@@ -300,14 +300,14 @@ class KepMask():
         bmax = max([imdict["bmaj"], imdict["bmin"]])
 
         #Call on a utils method to calculate the Keplerian masks.
-        maskall = kepmod.calc_Kepvelmask(
+        maskall = kepmod.calc_Kepvelmask(whichconv=whichconv,
             xlen=imdict["ralen"], ylen=imdict["declen"], bmin=bmax,
             vel_arr=imdict["velarr"], bmaj=bmax, bpa=imdict["bpa"],
             midx=paramdict["midx"], midy=paramdict["midy"],
             rawidth=imdict["rawidth"], decwidth=imdict["decwidth"],
             velwidth=imdict["velwidth"], mstar=paramdict["mstar"],
             posang=paramdict["PA"], incang=paramdict["inc"],
-            dist=paramdict["dist"], sysvel=paramdict["vsys"],
+            dist=paramdict["dist"], sysvel=paramdict["vsys"], beamcut=beamcut,
             beamfactor=beamfactor, freqlist=hypfreqs, whichbroad=whichbroad,
             broadyen_pre0=V0_ms, broadyen_r0=R0_AU, broadyen_qval=q0,
             showtests=showtests, emsummask=mask_override, rmax=mask_Rmax)
@@ -327,7 +327,7 @@ class KepMask():
         #Calculate the beam area [pix]
         beamarea = astmod.calc_beamarea(bmaj=imdict["bmaj"],
                             bmin=imdict["bmin"], rawidth=imdict["rawidth"],
-                            decwidth=imdict["decwidth"], units="rad")
+                            decwidth=imdict["decwidth"], units="pix")
         #Convert the raw spectrum from [Jy/beam] to [Jy]
         specarr = specarr_raw/1.0/beamarea #[Jy/beam] -> [Jy]
         #Record the converted spectrum
@@ -480,7 +480,7 @@ class KepMask():
             if vmin is None: #Set min. colorbar value for 2D plots, if not given
                 vmin = data.min()
             if vmax is None: #Set max. colorbar value for 2D plots, if not given
-                vmax = data.max()
+                vmax = max([data.max(), (vmin+1)])
             masks = self._get_maskdata(param="masks")
             varr = imdict["velarr"]/1.0E3 #[m/s] -> [km/s]
             if vrange_kms is not None:
@@ -494,7 +494,7 @@ class KepMask():
                 bmaj=imdict["bmaj"], bmin=imdict["bmin"], bpa=imdict["bpa"],
                 velall_arr=varr, cmap=cmap, ncol=ncol,
                 vmin=vmin, vmax=vmax, xlim=xlim, ylim=ylim,
-                xlabel=r"\Delta R.A. [\"]", ylabel=r"\Delta Dec. [\"]",
+                xlabel=r"$\Delta$ R.A. [\"]", ylabel=r"$\Delta$ Dec. [\"]",
                 docbar=True, cbarlabel=r"mJy beam$^{-1}$",
                 textsize=textsize, ticksize=textsize, titlesize=titlesize,
                 beamx=beamx, beamy=beamy, plotbeam=True)
