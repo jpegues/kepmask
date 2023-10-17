@@ -50,6 +50,9 @@ class KepMask():
                     "bpa", "rawidth", "decwidth", "velwidth", "emmatr",
                     "raarr", "decarr"])
 
+        #Record the allowed header types for saving possible output products.
+        self._header_list = [None, "CASA"]
+
         #Record the allowed extensions for saving possible output products.
         self._saveext_list = [".fits", ".npy"]
 
@@ -570,7 +573,7 @@ class KepMask():
         return
     #
 
-    def save_product(self, prod, savename, saveext=".npy", do_overwrite=False):
+    def save_product(self, prod, savename, saveext=".npy", type_header=None, do_overwrite=False):
         """
         METHOD: save_product
         PURPOSE: Save the desired image product (e.g., spectrum or mom0) to the given filename.
@@ -578,6 +581,9 @@ class KepMask():
           - prod [str]: The name of the desired product.
           - saveext [str; default=".npy"]: File extension to use for the saved product.
           - savename [str]: <File location>+<file name> where the product will be saved. Should not include the extension at the end.
+          - type_header [str or None; default=None]: Format for saved header.  Options are:
+            - None: Use default input variables as header values.
+            - "CASA": Build header to match a CASA output .fits file.
           - do_overwrite [bool; default=False]: Whether or not to allow overwrite of any existing files with the file name 'savename'.
         OUTPUTS:
           - None.
@@ -595,6 +601,15 @@ class KepMask():
                         .format(saveext)
                         +"is not a supported type.\nSupported types are:\n{0}"
                         .format(self._saveext_list))
+            raise KeyError(errstr)
+        #
+
+        #Raise an error if the desired header type is not allowed.
+        if (type_header not in self._header_list):
+            errstr = ("Whoa! Looks like the header type you requested ({0}) "
+                        .format(type_header)
+                        +"is not a supported type.\nSupported types are:\n{0}"
+                        .format(self._header_list))
             raise KeyError(errstr)
         #
 
@@ -635,7 +650,13 @@ class KepMask():
             #
 
             #Incorporate all information so far into a fits header
-            header = fitter.Header(cards=dict_info, copy=True)
+            if (type_header is None):
+                header = fitter.Header(cards=dict_info, copy=True)
+            elif (type_header.lower() == "casa"):
+                header = astmod._make_header_CASA(dict_info=dict_info)
+            else:
+                raise ValueError("Code should not have reached this error! Please "
+                                +"inform the developer of this bug!")
             #
 
             #Wrap the product in an array, if need be

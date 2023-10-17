@@ -623,6 +623,95 @@ def conv_filter(actmatr, kernel):
 
 ###FUNCTION: conv_freqtovel
 ###PURPOSE: This function is meant to convert from frequency to velocity
-def conv_freqtovel(freq, restfreq):
-    return cconst*(1.0 - (freq/1.0/restfreq))
+def conv_freqtovel(freq=None, restfreq=None, vel=None):
+    if ((freq is not None) and (vel is not None)):
+        raise ValueError("Whoa! Either freq OR vel permitted, not both!")
+    elif (freq is not None):
+        return cconst*(1.0 - (freq/1.0/restfreq))
+    elif (vel is not None):
+        return ((1.0 - (vel/cconst))*restfreq)
+    else:
+        raise ValueError("Whoa! Please specify freq OR vel!")
+#
+
+
+
+###FUNCTION: _make_header_CASA
+###PURPOSE: This function is meant to make a header for a .fits file in the style of a CASA output .fits file
+def _make_header_CASA(dict_info):
+    #Build base dictionary for holding standard CASA fields
+    dict_base = {}
+    conv_radtodeg = 180.0/pi #Convert radians to degrees
+    #
+    #Scaling: PHYSICAL = PIXEL*BSCALE + BZERO
+    dict_base["OBJECT"] = "Object"
+    dict_base["BSCALE"] = 1.0
+    dict_base["BZERO"] = 0.0
+    dict_base["BTYPE"] = "Intensity"
+    dict_base["BUNIT"] = "<Intensity Unit>/pixel"
+    #
+    #Beam parameters
+    dict_base["BMAJ"] = dict_info["bmaj"]*conv_radtodeg #[rad] -> [deg]
+    dict_base["BMIN"] = dict_info["bmin"]*conv_radtodeg #[rad] -> [deg]
+    dict_base["BPA"] = dict_info["bpa"]*conv_radtodeg #[rad] -> [deg]
+    #
+    #RA parameters
+    dict_base["CTYPE1"] = "RA---SIN"
+    dict_base["CUNIT1"] = "deg"
+    dict_base["CRPIX1"] = dict_info["midx"] #Index of middle x-axis pixel
+    dict_base["CRVAL1"] = dict_info["raarr"][dict_info["midx"]
+                                            ]*conv_radtodeg #RA value at midx
+    dict_base["CDELT1"] = dict_info["rawidth"]*conv_radtodeg #RA value at midx
+    #
+    #RA parameters
+    dict_base["CTYPE2"] = "DEC---SIN"
+    dict_base["CUNIT2"] = "deg"
+    dict_base["CRPIX2"] = dict_info["midy"] #Index of middle y-axis pixel
+    dict_base["CRVAL2"] = dict_info["decarr"][dict_info["midy"]
+                                            ]*conv_radtodeg #DEC value at midx
+    dict_base["CDELT2"] = dict_info["decwidth"]*conv_radtodeg #DEC value at midx
+    #
+    #Velocity parameters
+    freqarr = conv_freqtovel(freq=None, restfreq=dict_info["restfreq"],
+                            vel=dict_info["velarr"]) #[m/s] -> [Hz]
+    midvel = (dict_info["nchan"] // 2) #Middle index of velocity axis
+    dict_base["CTYPE3"] = "FREQ"
+    dict_base["CUNIT3"] = "Hz"
+    dict_base["CRPIX3"] = midvel
+    dict_base["CRVAL3"] = dict_info["freqarr"][midvel] #Velocity val., mid. index
+    dict_base["CDELT3"] = (dict_info["restfreq"]*dict_info["velwidth"]/cconst)
+    #
+    #Polarity parameters - blanked out
+    dict_base["CTYPE4"] = "STOKES"
+    dict_base["CUNIT4"] = ""
+    dict_base["CRPIX4"] = 1.0
+    dict_base["CRVAL4"] = 1.0
+    dict_base["CDELT4"] = 1.0
+    #
+    #Frequency and system parameters
+    dict_base["RESTFRQ"] = restfreq #Rest Frequency (Hz)
+    dict_base["SPECSYS"] = "LSRK" #Spectral reference frame
+    #
+
+    #Wrap and return the header
+    return fitter.Header(cards=dict_base, copy=True)
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #
