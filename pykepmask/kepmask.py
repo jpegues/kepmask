@@ -9,6 +9,7 @@ from . import _utilsKep as kepmod
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patch #For Ellipse package
+import astropy.io.fits as fitter
 plt.close()
 pi = np.pi
 
@@ -47,6 +48,9 @@ class KepMask():
         self._imkeys = np.sort(["ralen", "declen", "velarr", "bmaj", "bmin",
                     "bpa", "rawidth", "decwidth", "velwidth", "emmatr",
                     "raarr", "decarr"])
+
+        #Record the allowed extensions for saving possible output products.
+        self._saveext_list = [".fits", ".npy"]
 
         #Record the names of all masked products that will ever be generated.
         self._prod_list = ["masks", "spectrum", "mom0",
@@ -562,6 +566,73 @@ class KepMask():
         #Otherwise, display the figure.
         else:
             plt.show()
+        return
+    #
+
+    def save_product(self, prod, savename, saveext=".npy"):
+        """
+        METHOD: save_product
+        PURPOSE: Save the desired image product (e.g., spectrum or mom0) to the given filename.
+        INPUTS:
+          - prod [str]: The name of the desired product.
+          - saveext [str; default=".npy"]: File extension to use for the saved product.
+          - savename [str]: <File location>+<file name> where the product will be saved. Should not include the extension at the end.
+        OUTPUTS:
+          - None.
+        NOTES:
+          - The available products are the same as in the get_product method. Refer to that method's documentation for details.
+          - The product will be saved at the location of the 'savename' input.
+        """
+        #Raise an error if the desired file type is not allowed.
+        if (saveext not in self._saveext_list):
+            errstr = ("Whoa! Looks like the file type you requested ({0}) "
+                        .format(saveext)
+                        +"is not a supported type.\nSupported types are:\n{0}"
+                        .format(self._saveext_list))
+            raise KeyError(errstr)
+        #
+
+        #Fetch the requested product
+        output = self.get_product(prod)
+        #
+
+        #Save the product according to the requested scheme
+        #For numpy output files
+        if (saveext == ".npy"):
+            #Save the file
+            np.save(savename, output)
+        #
+        #For fits output files
+        elif (saveext == ".fits"):
+            print(self._valdict.keys())
+            print(self._imdict.keys())
+            print(self._maskdict.keys())
+            print(woo)
+
+            #Fetch all information stored so far for this mask set
+            dict_info = {key:dict_val[key] for key in dict_val}
+            #
+
+            #Incorporate all information so far into a fits header
+            header = fitter.Header(cards=dict_info, copy=True)
+            #
+
+            #Wrap the product in an array, if need be
+            if (isinstance(output, int) or isinstance(output, float)):
+                output = np.array([output])
+            #
+
+            #Write the data and header to a file
+            finname = (savename + saveext)
+            fits.writeto(finname, output, header)
+        #
+        #Throw serious error if this bit of code is reached
+        else:
+            raise ValueError("Code should not have reached this error! Please "
+                            +"inform the developer of this bug!")
+        #
+
+        #Exit the method
         return
     #
 #
