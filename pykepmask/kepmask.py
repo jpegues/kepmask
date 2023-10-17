@@ -643,17 +643,26 @@ class KepMask():
                             or isinstance(dict_val[key], int)
                             or isinstance(dict_val[key], float))}
             #
-            dict_info.update({key:dict_im[key] for key in dict_im
-                        if (isinstance(dict_im[key], str)
-                            or isinstance(dict_im[key], int)
-                            or isinstance(dict_im[key], float))})
-            #
 
             #Incorporate all information so far into a fits header
+            #For default header using input names
             if (type_header is None):
+                #Fold in singular input imaging parameters
+                dict_info.update({key:dict_im[key] for key in dict_im
+                            if (isinstance(dict_im[key], str)
+                                or isinstance(dict_im[key], int)
+                                or isinstance(dict_im[key], float))})
+                #Create the header
                 header = fitter.Header(cards=dict_info, copy=True)
+            #
+            #For header similar to headers seen in CASA output image .fits files
             elif (type_header.lower() == "casa"):
+                #Fold in all input and generated imaging parameters
+                dict_info.update({key:dict_im[key] for key in dict_im})
+                #Create the header
                 header = astmod._make_header_CASA(dict_info=dict_info)
+            #
+            #Otherwise, throw error if requested header type not recognized
             else:
                 raise ValueError("Code should not have reached this error! Please "
                                 +"inform the developer of this bug!")

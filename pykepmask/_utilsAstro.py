@@ -157,22 +157,24 @@ def extract_fits(filename, filetype, restfreq=None):
             velwidth = openfit[0].header["CDELT3"] #m/s
             velarr = (((np.arange(nchan)+1 - velcenind)*velwidth)
                         + velcenval)
+            #Read in restfreq, if not given
+            if (restfreq is None):
+                restfreq = openfit[0].header["RESTFRQ"]
+            #
             #velarr = np.array([(vel0 + (ei*velwidth))
             #            for ei in range(0, nchan)])
             #if openfit[0].header["CUNIT3"] == "m/s":
             #    fitdict["velwidth"] = velwidth #m/s
             #    fitdict["velarr"] = velarr #m/s
             if openfit[0].header["CUNIT3"] == "Hz": #Converts from freq.
-                #Read in restfreq, if not given
-                if restfreq is None:
-                    restfreq = openfit[0].header["RESTFRQ"]
                 velarr = conv_freqtovel(freq=velarr,
                             restfreq=restfreq)
             #If descending velocities, flip
             if velwidth < 0:
                 velarr = velarr[::-1]
                 fitdict["emmatr"] = fitdict["emmatr"][::-1]
-            #Record velocities
+            #Record velocities and rest frequency
+            fitdict["restfreq"] = restfreq
             fitdict["velarr"] = velarr
             fitdict["velwidth"] = np.abs(velwidth)
 
@@ -678,7 +680,7 @@ def _make_header_CASA(dict_info):
     dict_base["CTYPE3"] = "FREQ"
     dict_base["CUNIT3"] = "Hz"
     dict_base["CRPIX3"] = midvel
-    dict_base["CRVAL3"] = dict_info["freqarr"][midvel] #Velocity val., mid. index
+    dict_base["CRVAL3"] = freqarr[midvel] #Velocity val., mid. index
     dict_base["CDELT3"] = (dict_info["restfreq"]*dict_info["velwidth"]/cconst)
     #
     #Polarity parameters - blanked out
@@ -689,7 +691,7 @@ def _make_header_CASA(dict_info):
     dict_base["CDELT4"] = 1.0
     #
     #Frequency and system parameters
-    dict_base["RESTFRQ"] = restfreq #Rest Frequency (Hz)
+    dict_base["RESTFRQ"] = dict_info["restfreq"] #Rest Frequency (Hz)
     dict_base["SPECSYS"] = "LSRK" #Spectral reference frame
     #
 
