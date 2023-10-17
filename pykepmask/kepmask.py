@@ -4,6 +4,7 @@
 
 
 ##Below Section: Imports necessary functions
+import os
 from . import _utilsAstro as astmod
 from . import _utilsKep as kepmod
 import numpy as np
@@ -569,7 +570,7 @@ class KepMask():
         return
     #
 
-    def save_product(self, prod, savename, saveext=".npy"):
+    def save_product(self, prod, savename, saveext=".npy", do_overwrite=False):
         """
         METHOD: save_product
         PURPOSE: Save the desired image product (e.g., spectrum or mom0) to the given filename.
@@ -577,12 +578,17 @@ class KepMask():
           - prod [str]: The name of the desired product.
           - saveext [str; default=".npy"]: File extension to use for the saved product.
           - savename [str]: <File location>+<file name> where the product will be saved. Should not include the extension at the end.
+          - do_overwrite [bool; default=False]: Whether or not to allow overwrite of any existing files with the file name 'savename'.
         OUTPUTS:
           - None.
         NOTES:
           - The available products are the same as in the get_product method. Refer to that method's documentation for details.
           - The product will be saved at the location of the 'savename' input.
         """
+        #Prepare full file name
+        finname = (savename + saveext)
+        #
+
         #Raise an error if the desired file type is not allowed.
         if (saveext not in self._saveext_list):
             errstr = ("Whoa! Looks like the file type you requested ({0}) "
@@ -590,6 +596,14 @@ class KepMask():
                         +"is not a supported type.\nSupported types are:\n{0}"
                         .format(self._saveext_list))
             raise KeyError(errstr)
+        #
+
+        #Raise an error if file already exists and overwrite is not allowed
+        if ((not do_overwrite) and os.path.isfile(finname)):
+            raise ValueError(("Whoa! File already exists at path:\n{0}\n"
+                        +"Either delete that file or rerun this method "
+                        +"with do_overwrite=True.")
+                        .format(finname))
         #
 
         #Fetch the requested product
@@ -600,17 +614,24 @@ class KepMask():
         #For numpy output files
         if (saveext == ".npy"):
             #Save the file
-            np.save(savename, output)
+            np.save(finname, output)
         #
         #For fits output files
         elif (saveext == ".fits"):
-            print(self._valdict.keys())
-            print(self._imdict.keys())
-            print(self._maskdict.keys())
-            print(woo)
+            #Fetch storage for this mask set
+            dict_val = self._valdict
+            dict_im = self._imdict
 
-            #Fetch all information stored so far for this mask set
-            dict_info = {key:dict_val[key] for key in dict_val}
+            #Gather all input information stored so far for this mask set
+            dict_info = {key:dict_val[key] for key in dict_val
+                        if (isinstance(dict_val[key], str)
+                            or isinstance(dict_val[key], int)
+                            or isinstance(dict_val[key], float))}
+            #
+            dict_info.update({key:dict_im[key] for key in dict_im
+                        if (isinstance(dict_im[key], str)
+                            or isinstance(dict_im[key], int)
+                            or isinstance(dict_im[key], float))})
             #
 
             #Incorporate all information so far into a fits header
@@ -621,10 +642,10 @@ class KepMask():
             if (isinstance(output, int) or isinstance(output, float)):
                 output = np.array([output])
             #
+            output = output.astype(float) #Ensure float array
 
             #Write the data and header to a file
-            finname = (savename + saveext)
-            fits.writeto(finname, output, header)
+            fitter.writeto(finname, output, header, overwrite=do_overwrite)
         #
         #Throw serious error if this bit of code is reached
         else:
