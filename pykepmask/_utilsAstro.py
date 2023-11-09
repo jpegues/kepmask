@@ -660,7 +660,8 @@ def _make_header_CASA(dict_info):
     #RA parameters
     dict_base["CTYPE1"] = "RA---SIN"
     dict_base["CUNIT1"] = "deg"
-    dict_base["CRPIX1"] = dict_info["midx"] #Index of middle x-axis pixel
+    dict_base["CRPIX1"] = (dict_info["midx"]+1) #Index of middle x-axis pixel
+    #Note: Above index starts at 1 for CASA
     dict_base["CRVAL1"] = dict_info["raarr"][dict_info["midx"]
                                             ]*conv_radtodeg #RA value at midx
     dict_base["CDELT1"] = dict_info["rawidth"]*conv_radtodeg #RA value at midx
@@ -668,7 +669,8 @@ def _make_header_CASA(dict_info):
     #RA parameters
     dict_base["CTYPE2"] = "DEC---SIN"
     dict_base["CUNIT2"] = "deg"
-    dict_base["CRPIX2"] = dict_info["midy"] #Index of middle y-axis pixel
+    dict_base["CRPIX2"] = (dict_info["midy"]+1) #Index of middle y-axis pixel
+    #Note: Above index starts at 1 for CASA
     dict_base["CRVAL2"] = dict_info["decarr"][dict_info["midy"]
                                             ]*conv_radtodeg #DEC value at midx
     dict_base["CDELT2"] = dict_info["decwidth"]*conv_radtodeg #DEC value at midx
@@ -679,7 +681,8 @@ def _make_header_CASA(dict_info):
     midvel = (dict_info["nchan"] // 2) #Middle index of velocity axis
     dict_base["CTYPE3"] = "FREQ"
     dict_base["CUNIT3"] = "Hz"
-    dict_base["CRPIX3"] = midvel
+    dict_base["CRPIX3"] = (midvel+1)
+    #Note: Above index starts at 1 for CASA
     dict_base["CRVAL3"] = freqarr[midvel] #Velocity val., mid. index
     dict_base["CDELT3"] = (dict_info["restfreq"]*dict_info["velwidth"]/cconst)
     #
