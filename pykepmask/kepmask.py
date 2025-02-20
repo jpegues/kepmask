@@ -299,8 +299,9 @@ class KepMask():
 
         #For the spectrum (array of summed masked emission):
         #Calculate and record the *raw* spectrum by summing desired channels
-        specarr_raw = np.array([emmatr[ai][maskall[ai]].sum()
-                                for ai in range(0, len(maskall))]) #[Jy/beam]
+        #specarr_raw = np.array([emmatr[ai][maskall[ai]].sum()
+        #                        for ai in range(0, len(maskall))]) #[Jy/beam]
+        specarr_raw = np.sum(np.where(maskall, emmatr, 0), axis=(1,2)) #[Jy/beam]
         #Calculate the beam area [pix]
         beamarea = astmod.calc_beamarea(bmaj=imdict["bmaj"],
                             bmin=imdict["bmin"], rawidth=imdict["rawidth"],
