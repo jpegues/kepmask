@@ -1,5 +1,5 @@
 ###FILE: kepmask.py
-###PURPOSE: 
+###PURPOSE:
 ###github.com/jpegues/kepmask
 
 
@@ -34,28 +34,28 @@ class KepMask():
         self._valdict = {}
         self._imdict = {} #Placeholder for future image cube data.
         self._maskdict = {} #Placeholder for future mask generation.
-        
+
         #Fill the dictionary with all given values.
         for key, val in kwargs.items():
             self._valdict[key] = val
-        
+
         #Record the names of all mask parameters that will ever be used.
         self._paramkeys = np.sort(["midx", "midy", "mstar", "PA", "inc",
                             "dist", "vsys"])
-        
+
         #Record the names of all image cube data that will ever be used.
         self._imkeys = np.sort(["ralen", "declen", "velarr", "bmaj", "bmin",
                     "bpa", "rawidth", "decwidth", "velwidth", "emmatr",
                     "raarr", "decarr"])
-        
+
         #Record the names of all masked products that will ever be generated.
         self._prod_list = ["masks", "spectrum", "mom0",
                                 "channels", "intflux"]
-        
+
         #Record the names of all plots that will ever be generated.
         self._plot_list = ["spectrum", "mom0", "channels"]
     #
-    
+
     def get_parameter(self, param, _inner=False, _keyset=None):
         """
         METHOD: get_parameter
@@ -92,7 +92,7 @@ class KepMask():
                         +"{0}".format((np.sort([key for key in self._valdict]
                                         +[key for key in self._imdict]))))
                 raise KeyError(errstr)
-        
+
         #The following protocol is for internal code use only (NOT users!).
         else:
             #Attempt to fetch the desired parameter from storage.
@@ -110,7 +110,7 @@ class KepMask():
                     +".set_parameter(param, value) method.")
                 raise KeyError(errstr)
     #
-    
+
     def _get_imdata(self, param):
         """
         METHOD: _get_imdata
@@ -129,7 +129,7 @@ class KepMask():
                     +"masks or generate/plot any products!")
             raise KeyError(errstr)
     #
-    
+
     def _get_maskdata(self, param):
         """
         METHOD: _get_maskdata
@@ -148,7 +148,7 @@ class KepMask():
                     +"plot any products!")
             raise KeyError(errstr)
     #
-    
+
     def set_parameter(self, param, value):
         """
         METHOD: set_parameter
@@ -167,7 +167,7 @@ class KepMask():
         #Set the value of the given parameter.
         self._valdict[param] = value
     #
-    
+
     def extract(self, fitsname, restfreq=None):
         """
         METHOD: extract
@@ -191,7 +191,7 @@ class KepMask():
         self._imdict = astmod.extract_fits(
                                 filename=fitsname, restfreq=restfreq)
     #
-    
+
     def generate(self, whichchans=None, hypfreqs=None, showtests=False,
                     V0_ms=300.0, R0_AU=100.0, q0=0.3, mask_override=None,
                     mask_Rmax=None, beamfactor=3.0, beamcut=0.03):
@@ -245,35 +245,35 @@ class KepMask():
         """
         #Set up a dictionary to hold masks and related products.
         maskdict = {}
-        
+
         #Gather mask parameters, which should have been previously loaded.
         paramdict = {} #Temporary dictionary to hold looked-up parameters.
         for key in self._paramkeys:
             paramdict[key] = self.get_parameter(param=key, _inner=True,
                                             _keyset=self._paramkeys)
-        
+
         #Gather image data, which should have been previously extracted.
         imdict = {} #Temporary dictionary to hold looked-up image cube data.
         for key in self._imkeys:
             imdict[key] = self._get_imdata(param=key)
         emmatr = imdict["emmatr"] #Record channel data under a variable name
         maskdict["channels"] = emmatr #Record channel data in mask dictionary
-        
+
         #If no specific channels requested, then use all channels.
         if whichchans is None:
             whichchans = np.arange(0, len(emmatr), 1) #All channels included
         maskdict["whichchans"] = whichchans
-        
+
         #Determine the max. value in [bmaj, bmin]
         #NOTE: We take the max. since the beam convolution approximation uses
         #       the circular approximation of the beam anyway.  Better to
         #       have masks that are too big than masks that are too small.
         bmax = max([imdict["bmaj"], imdict["bmin"]])
-        
+
         #Determine R.A. and Decl. axes, offset from midpoint.
         radeltarr = imdict["raarr"] - imdict["raarr"][paramdict["midx"]]
         decdeltarr = imdict["decarr"] - imdict["decarr"][paramdict["midy"]]
-        
+
         #Call on a utils method to calculate the Keplerian masks.
         maskall = kepmod.calc_Kepvelmask(
             xlen=imdict["ralen"], ylen=imdict["declen"], bmin=bmax,
@@ -286,16 +286,17 @@ class KepMask():
             radeltarr=radeltarr, decdeltarr=decdeltarr,
             beamfactor=beamfactor, beamcut=beamcut, freqlist=hypfreqs,
             broadyen_pre0=V0_ms, broadyen_r0=R0_AU, broadyen_qval=q0,
-            showtests=showtests, emsummask=mask_override, rmax=mask_Rmax)
+            showtests=showtests, emsummask=mask_override, rmax=mask_Rmax,
+            whichchans=whichchans)
         #Nullify masks in undesired channels
         for ai in range(0, len(maskall)):
             if ai not in whichchans:
                 maskall[ai] = False
-        
+
         #Go ahead and calculate relevant masked products, since we're here.
         #For the masks themselves:
         maskdict["masks"] = maskall
-        
+
         #For the spectrum (array of summed masked emission):
         #Calculate and record the *raw* spectrum by summing desired channels
         specarr_raw = np.array([emmatr[ai][maskall[ai]].sum()
@@ -308,10 +309,10 @@ class KepMask():
         specarr = specarr_raw/1.0/beamarea #[Jy/beam] -> [Jy]
         #Record the converted spectrum
         maskdict["spectrum"] = specarr
-        
+
         #For the velocity-integrated flux:
-        maskdict["intflux"] = specarr.sum()*imdict["velwidth"] 
-        
+        maskdict["intflux"] = specarr.sum()*imdict["velwidth"]
+
         #For the mom0 (pixel-by-pixel sum of masked emission):
         kepmom0 = np.zeros(shape=(imdict["declen"],
                                     imdict["ralen"])) #Initialize mom0 matrix
@@ -322,12 +323,12 @@ class KepMask():
             kepmom0 += kepmatrhere #Add channel to overall mom0
         #Store the complete mom0
         maskdict["mom0"] = kepmom0*imdict["velwidth"]
-        
+
         #Store the masks and related products.
         self._maskdict = maskdict
         #
     #
-    
+
     def get_product(self, prod):
         """
         METHOD: get_product
@@ -352,11 +353,11 @@ class KepMask():
                         +"is not a valid product.  Valid products are: "
                         +"{0}".format(self._prod_list))
             raise KeyError(errstr)
-        
+
         #If the requested product are channels, fetch from image storage.
         if prod == "channels":
             return self._get_imdata("emmatr")
-        
+
         #Otherwise, attempt to fetch the desired product from mask storage.
         try:
             return self._maskdict[prod]
@@ -370,7 +371,7 @@ class KepMask():
             raise KeyError(errstr)
         #
     #
-    
+
     def plot_product(self, prod, dosave=False, savename="testing.png",
                         figsize=(8,8), title="", ncol=7,
                         xlim=[-3.0, 3.0], ylim=[-3.0, 3.0],
@@ -435,25 +436,25 @@ class KepMask():
                         +"is not a supported plot. Supported plots are: {0}"
                         .format(self._plot_list))
             raise KeyError(errstr)
-        
+
         #Gather mask parameters.  Should have been previously loaded.
         paramdict = {} #Temporary dictionary to hold looked-up parameters.
         for key in self._paramkeys:
             paramdict[key] = self.get_parameter(param=key, _inner=True,
                                             _keyset=self._paramkeys)
-        
+
         #Gather image data for plots.  Should have been previously extracted.
         imdict = {} #Temporary dictionary to hold looked-up image cube data.
         for key in self._imkeys:
             imdict[key] = self._get_imdata(param=key)
-        
+
         #Determine R.A. and Decl. axes, offset from midpoint.
         radeltarr = imdict["raarr"] - imdict["raarr"][paramdict["midx"]]
         decdeltarr = imdict["decarr"] - imdict["decarr"][paramdict["midy"]]
         #Convert to arcsec
         radeltarr *= 180.0/pi*3600 #[rad] -> [arcsec]
         decdeltarr *= 180.0/pi*3600 #[rad] -> [arcsec]
-        
+
         #Plot the desired product.
         fig = plt.figure(figsize=figsize) #Base figure
         #For a channel map, if so desired.  Uses a utils method to do so.
@@ -485,7 +486,7 @@ class KepMask():
         elif prod == "spectrum":
             #Extract the desired product data to plot.
             data = self._get_maskdata(param=prod)*1E3 #Change Jy to mJy
-        
+
             #Generate the spectrum plot
             plt.plot((imdict["velarr"]-paramdict["vsys"])/1.0E3, #m/s -> km/s
             data, drawstyle="steps-mid", color=color, linewidth=linewidth,
@@ -505,7 +506,7 @@ class KepMask():
                 vmin = data.min()
             if vmax is None: #Set max. colorbar value for 2D plots, if not given
                 vmax = data.max()
-            
+
             #Plot the mom0 and a colorbar
             axhere = fig.add_subplot(111)
             phere = plt.imshow(data, extent=[radeltarr[0], radeltarr[-1],
@@ -536,7 +537,7 @@ class KepMask():
             ellhere.set_facecolor("gray")
             ellhere.set_edgecolor("black")
             axhere.add_artist(ellhere)
-        
+
         #Title and save the figure, if so desired.
         plt.title(title, fontsize=titlesize)
         if dosave:
@@ -548,12 +549,3 @@ class KepMask():
         return
     #
 #
-
-
-
-
-
-
-
-
-
