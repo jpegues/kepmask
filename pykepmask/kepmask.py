@@ -194,7 +194,8 @@ class KepMask():
 
     def generate(self, whichchans=None, hypfreqs=None, showtests=False,
                     V0_ms=300.0, R0_AU=100.0, q0=0.3, mask_override=None,
-                    mask_Rmax=None, beamfactor=3.0, beamcut=0.03):
+                    mask_Rmax=None, beamfactor=3.0, beamcut=0.03,
+                    do_generate_products=True):
         """
         METHOD: generate
         PURPOSE: Generate a Keplerian mask for the previously-stored image cube.
@@ -297,33 +298,35 @@ class KepMask():
         #For the masks themselves:
         maskdict["masks"] = maskall
 
-        #For the spectrum (array of summed masked emission):
-        #Calculate and record the *raw* spectrum by summing desired channels
-        #specarr_raw = np.array([emmatr[ai][maskall[ai]].sum()
-        #                        for ai in range(0, len(maskall))]) #[Jy/beam]
-        specarr_raw = np.sum(np.where(maskall, emmatr, 0), axis=(1,2)) #[Jy/beam]
-        #Calculate the beam area [pix]
-        beamarea = astmod.calc_beamarea(bmaj=imdict["bmaj"],
+        #Generate masked products, if so requested
+        if do_generate_products:
+            #For the spectrum (array of summed masked emission):
+            #Calculate and record the *raw* spectrum by summing desired channels
+            #specarr_raw = np.array([emmatr[ai][maskall[ai]].sum()
+            #                        for ai in range(0, len(maskall))]) #[Jy/beam]
+            specarr_raw = np.nansum(np.where(maskall, emmatr, 0), axis=(1,2))#Jy/beam
+            #Calculate the beam area [pix]
+            beamarea = astmod.calc_beamarea(bmaj=imdict["bmaj"],
                             bmin=imdict["bmin"], rawidth=imdict["rawidth"],
                             decwidth=imdict["decwidth"])
-        #Convert the raw spectrum from [Jy/beam] to [Jy]
-        specarr = specarr_raw/1.0/beamarea #[Jy/beam] -> [Jy]
-        #Record the converted spectrum
-        maskdict["spectrum"] = specarr
+            #Convert the raw spectrum from [Jy/beam] to [Jy]
+            specarr = specarr_raw/1.0/beamarea #[Jy/beam] -> [Jy]
+            #Record the converted spectrum
+            maskdict["spectrum"] = specarr
 
-        #For the velocity-integrated flux:
-        maskdict["intflux"] = specarr.sum()*imdict["velwidth"]
+            #For the velocity-integrated flux:
+            maskdict["intflux"] = specarr.sum()*imdict["velwidth"]
 
-        #For the mom0 (pixel-by-pixel sum of masked emission):
-        kepmom0 = np.zeros(shape=(imdict["declen"],
-                                    imdict["ralen"])) #Initialize mom0 matrix
-        #Iterate through desired channels with emission
-        for ihere in whichchans: #Iterate through desired channels
-            kepmatrhere = emmatr[ihere].copy() #Current channel
-            kepmatrhere[~maskall[ihere]] = 0.0 #Remove data beyond mask
-            kepmom0 += kepmatrhere #Add channel to overall mom0
-        #Store the complete mom0
-        maskdict["mom0"] = kepmom0*imdict["velwidth"]
+            #For the mom0 (pixel-by-pixel sum of masked emission):
+            kepmom0 = np.zeros(shape=(imdict["declen"],
+                                        imdict["ralen"])) #Initialize mom0 matrix
+            #Iterate through desired channels with emission
+            for ihere in whichchans: #Iterate through desired channels
+                kepmatrhere = emmatr[ihere].copy() #Current channel
+                kepmatrhere[~maskall[ihere]] = 0.0 #Remove data beyond mask
+                kepmom0 += kepmatrhere #Add channel to overall mom0
+            #Store the complete mom0
+            maskdict["mom0"] = kepmom0*imdict["velwidth"]
 
         #Store the masks and related products.
         self._maskdict = maskdict
@@ -364,11 +367,13 @@ class KepMask():
             return self._maskdict[prod]
         #If the parameter does not exist, ask the reader to generate masks.
         except KeyError:
-            errstr = ("Looks like you haven't generated any masks and their "
+            errstr = ("Looks like you haven't generated any masks and/or their "
                     +"products yet.  Please use the "
-                    +".generate() "
+                    +".generate(do_generate_products) "
                     +"method to do so first, BEFORE trying to get masks "
-                    +"or any masked products!")
+                    +"or any masked products!\n"
+                    +"In particular, do_generate_products must be set to True "
+                    +"in order to generate any emission products (spectra, etc.)")
             raise KeyError(errstr)
         #
     #
