@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patch #For Ellipse package
 plt.close()
 pi = np.pi
+G0 = kepmod.G0
 
 class KepMask():
     def __init__(self, **kwargs):
@@ -192,10 +193,10 @@ class KepMask():
                                 filename=fitsname, restfreq=restfreq)
     #
 
-    def generate(self, whichchans=None, hypfreqs=None, showtests=False,
-                    V0_ms=300.0, R0_AU=100.0, q0=0.3, mask_override=None,
-                    mask_Rmax=None, beamfactor=3.0, beamcut=0.03,
-                    do_generate_products=True):
+    def generate(self, whichchans=None, inner_radius=None, hypfreqs=None,
+                    showtests=False, V0_ms=300.0, R0_AU=100.0, q0=0.3,
+                    mask_override=None, mask_Rmax=None, beamfactor=3.0,
+                    beamcut=0.03, do_generate_products=True):
         """
         METHOD: generate
         PURPOSE: Generate a Keplerian mask for the previously-stored image cube.
@@ -211,6 +212,11 @@ class KepMask():
               molecular lines with hyperfine structure.  The main hyperfine
               transition should be first in the list.
               If hypfreqs=None, then no hyperfine masks will be generated.
+          - inner_radius [None OR float, default=None]: Inner radius to use as
+              cutoff for velocity range of masks, via sqrt[G*M/r]*sin(incl.).
+              If specified, 'whichchans' must be set to None.
+              If both 'inner_radius' are 'whichchans' set to None, the masks
+              will extend indefinitely over all velocity channels.
           - mask_override [2D bool array OR None, default=None]: Regions in
               the channels where Keplerian masks are allowed to take place.
               For instance, if you are looking to extract emission within
@@ -228,6 +234,9 @@ class KepMask():
               scheme described by Yen+2016.  See NOTES below.
           - whichchans [None OR list of indices, default=None]: List of indices
               corresponding to the desired channels to have masks.
+              If specified, 'inner_radius' must be set to None.
+              If both 'inner_radius' are 'whichchans' set to None, the masks
+              will extend indefinitely over all velocity channels.
         OUTPUTS:
           - N/A
         NOTES:
@@ -244,6 +253,17 @@ class KepMask():
           - If both mask_override and mask_Rmax are not None, then the value
               of mask_Rmax will be used.
         """
+        #Raise error if two different channel range specifications given
+        if ((whichchans is not None) and (inner_radius is not None)):#Err if both
+            raise ValueError(
+                "Err: Both the mask channel indices (whichchans) and the "
+                +"inner radius cutoff for the mask (inner_radius) cannot be "
+                +"specified at the same time. Please choose either boundary, "
+                +"or set them both to be None.\nCurrent values:\n"
+                +f"whichchans = {whichchans}\n"
+                +f"inner_radius [meters] = {inner_radius}"
+            )
+
         #Set up a dictionary to hold masks and related products.
         maskdict = {}
 
@@ -260,9 +280,19 @@ class KepMask():
         emmatr = imdict["emmatr"] #Record channel data under a variable name
         maskdict["channels"] = emmatr #Record channel data in mask dictionary
 
-        #If no specific channels requested, then use all channels.
-        if whichchans is None:
+        #If inner radius given, use to calculate channel range.
+        if (inner_radius is not None):
+            max_abs_v = (
+                np.sqrt(G0 * paramdict["mstar"] / inner_radius)
+                * np.sin(paramdict["incang"])
+            )
+            whichchans = np.arange(0, len(vel_arr), 1)[
+                (np.abs(vel_arr) <= max_abs_v)
+            ]
+        #Otherwise, if no specific channels requested, then use all channels.
+        elif ((whichchans is None) and (inner_radius is None)):
             whichchans = np.arange(0, len(emmatr), 1) #All channels included
+        #Store the channels
         maskdict["whichchans"] = whichchans
 
         #Determine the max. value in [bmaj, bmin]
@@ -288,7 +318,7 @@ class KepMask():
             beamfactor=beamfactor, beamcut=beamcut, freqlist=hypfreqs,
             broadyen_pre0=V0_ms, broadyen_r0=R0_AU, broadyen_qval=q0,
             showtests=showtests, emsummask=mask_override, rmax=mask_Rmax,
-            whichchans=whichchans)
+            whichchans=whichchans, inner_radius=inner_radius)
         #Nullify masks in undesired channels
         for ai in range(0, len(maskall)):
             if ai not in whichchans:
