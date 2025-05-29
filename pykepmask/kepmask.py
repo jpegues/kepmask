@@ -280,9 +280,10 @@ class KepMask():
 
         #If inner radius given, use to calculate channel range.
         if (inner_radius is not None):
+            vel_arr = imdict["velarr"]
             max_abs_v = (
                 np.sqrt(G0 * paramdict["mstar"] / inner_radius)
-                * np.sin(paramdict["incang"])
+                * np.sin(paramdict["inc"])
             )
             whichchans = np.arange(0, len(vel_arr), 1)[
                 (np.abs(vel_arr) <= max_abs_v)
@@ -316,7 +317,7 @@ class KepMask():
             beamfactor=beamfactor, beamcut=beamcut, freqlist=hypfreqs,
             broadyen_pre0=V0_ms, broadyen_r0=R0_AU, broadyen_qval=q0,
             showtests=showtests, emsummask=mask_override, rmax=mask_Rmax,
-            whichchans=whichchans, inner_radius=inner_radius)
+            whichchans=whichchans)
         #Nullify masks in undesired channels
         for ai in range(0, len(maskall)):
             if ai not in whichchans:
