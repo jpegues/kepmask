@@ -161,8 +161,16 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
         else:
             tmpinds = np.arange(0, len(vel_arr), 1)
         #
-        curmasklist = [] #To hold current mask set
-        for vi in tmpinds: #range(0, len(vel_arr)):
+        #curmasklist = [] #To hold current mask set
+        curmasklist = np.zeros(
+            shape=(len(vel_arr), velmatr.shape[0], velmatr.shape[1])
+        ) #To hold current mask set
+        #for vi in tmpinds: #range(0, len(vel_arr)):
+        for vi in range(0, len(vel_arr)):
+            #Skip this channel if not a requested channel
+            if (vi not in tmpinds):
+                continue
+
             #Below adds thermal broadening and channel width in quadrature
             velhere = vel_arr[vi]
             maskhere = ((velmatr >= velhere - (quadwidth/2.0))
@@ -188,7 +196,7 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
             if rmax is not None: #If outer edge of disk known
                 maskhere[rmatr > rmax] = 0
             maskhere = maskhere.astype(bool)
-            curmasklist.append(maskhere)
+            curmasklist[vi] = maskhere #.append(maskhere)
 
 
         #Below Section: "Interpolates" for masks not shown due to low pixel res.
@@ -243,8 +251,12 @@ def calc_Kepvelfield(xlen, ylen, midx, midy, rawidth, decwidth, mstar, posang, i
     yangmatr = (indmatrs[0] - midy)*decwidth #radians
 
     #Below rotates angular indices (clockwise!) by position angle
-    xrotangmatr = (xangmatr*np.cos(posang)) + (yangmatr*np.sin(posang)) #radians
-    yrotangmatr = (yangmatr*np.cos(posang)) - (xangmatr*np.sin(posang)) #radians
+    #In different coordinate system
+    #xrotangmatr = (xangmatr*np.cos(posang)) + (yangmatr*np.sin(posang)) #radians
+    #yrotangmatr = (yangmatr*np.cos(posang)) - (xangmatr*np.sin(posang)) #radians
+    #In typical astronomy coordinate system - see Yen+2016
+    xrotangmatr = (xangmatr*np.sin(posang)) + (yangmatr*np.cos(posang)) #radians
+    yrotangmatr = (yangmatr*np.sin(posang)) - (xangmatr*np.cos(posang)) #radians
 
     #Below calculates deprojected radius matrix in physical units
     rangmatr = np.sqrt((xrotangmatr**2)
