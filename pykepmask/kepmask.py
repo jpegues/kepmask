@@ -215,8 +215,6 @@ class KepMask():
           - inner_radius [None OR float, default=None]: Inner radius to use as
               cutoff for velocity range of masks, via sqrt[G*M/r]*sin(incl.).
               If specified, 'whichchans' must be set to None.
-              If both 'inner_radius' are 'whichchans' set to None, the masks
-              will extend indefinitely over all velocity channels.
           - mask_override [2D bool array OR None, default=None]: Regions in
               the channels where Keplerian masks are allowed to take place.
               For instance, if you are looking to extract emission within
@@ -235,8 +233,6 @@ class KepMask():
           - whichchans [None OR list of indices, default=None]: List of indices
               corresponding to the desired channels to have masks.
               If specified, 'inner_radius' must be set to None.
-              If both 'inner_radius' are 'whichchans' set to None, the masks
-              will extend indefinitely over all velocity channels.
         OUTPUTS:
           - N/A
         NOTES:
@@ -252,6 +248,8 @@ class KepMask():
               width of the channels.
           - If both mask_override and mask_Rmax are not None, then the value
               of mask_Rmax will be used.
+          - If both 'inner_radius' are 'whichchans' set to None, the masks
+              will be extended indefinitely over all velocity channels.
         """
         #Raise error if two different channel range specifications given
         if ((whichchans is not None) and (inner_radius is not None)):#Err if both
@@ -330,11 +328,20 @@ class KepMask():
 
         #Generate masked products, if so requested
         if do_generate_products:
+            #Fetch non-zero indices of masks
+            #inds_nonzero = ((item.max() != 0) for item in maskall)
             #For the spectrum (array of summed masked emission):
             #Calculate and record the *raw* spectrum by summing desired channels
             #specarr_raw = np.array([emmatr[ai][maskall[ai]].sum()
             #                        for ai in range(0, len(maskall))]) #[Jy/beam]
-            specarr_raw = np.nansum(np.where(maskall, emmatr, 0), axis=(1,2))#Jy/beam
+            #specarr_raw = np.nansum(
+            #    np.where(maskall[inds_nonzero], emmatr[inds_nonzero], 0), axis=(1,2)
+            #) #Jy/beam
+            specarr_raw = np.array([
+                np.nansum(emmatr[ind][maskall[ind]])
+                if (maskall[ind].max() != 0) else 0
+                for ind in range(0, len(maskall))
+            ])
             #Calculate the beam area [pix]
             beamarea = astmod.calc_beamarea(bmaj=imdict["bmaj"],
                             bmin=imdict["bmin"], rawidth=imdict["rawidth"],
@@ -352,6 +359,11 @@ class KepMask():
                                         imdict["ralen"])) #Initialize mom0 matrix
             #Iterate through desired channels with emission
             for ihere in whichchans: #Iterate through desired channels
+                #Skip if empty mask here
+                if (maskall[ihere].max() == 0):
+                    continue
+
+                #Incorporate into mom0
                 kepmatrhere = emmatr[ihere].copy() #Current channel
                 kepmatrhere[~maskall[ihere]] = 0.0 #Remove data beyond mask
                 kepmom0 += kepmatrhere #Add channel to overall mom0
