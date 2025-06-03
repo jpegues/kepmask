@@ -279,19 +279,22 @@ class KepMask():
         maskdict["channels"] = emmatr #Record channel data in mask dictionary
 
         #If inner radius given, use to calculate channel range.
+        max_abs_v = None
         if (inner_radius is not None):
-            vel_arr = imdict["velarr"]
+            deltavel_arr = (imdict["velarr"] - paramdict["vsys"])
             max_abs_v = (
                 np.sqrt(G0 * paramdict["mstar"] / inner_radius)
                 * np.sin(paramdict["inc"])
             )
-            whichchans = np.arange(0, len(vel_arr), 1)[
-                (np.abs(vel_arr) <= max_abs_v)
+            whichchans = np.arange(0, len(deltavel_arr), 1)[
+                (np.abs(deltavel_arr) <= max_abs_v)
             ]
         #Otherwise, if no specific channels requested, then use all channels.
         elif ((whichchans is None) and (inner_radius is None)):
             whichchans = np.arange(0, len(emmatr), 1) #All channels included
         #Store the channels
+        self.set_parameter("whichchans", whichchans)
+        self.set_parameter("max_abs_v", max_abs_v)
         maskdict["whichchans"] = whichchans
 
         #Determine the max. value in [bmaj, bmin]

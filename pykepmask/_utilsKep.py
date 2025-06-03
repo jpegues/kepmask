@@ -202,22 +202,23 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
         #Below Section: "Interpolates" for masks not shown due to low pixel res.
         sysloc = np.argmin(np.abs(vel_arr - sysvelarr[ai])) #Ind. nearest sys vel
         #Below checks masks to the left of the systemic velocity (sys vel)
-        for vi in range(np.min(tmpinds), sysloc+1-1):
-            if (vi == 0): #If at start of channels
-                continue
-            #Copies over previous mask if doesn't show up for this channel
-            if ((curmasklist[vi].max() == False)
-                        and (curmasklist[vi-1].max() == True)):
-                curmasklist[vi] = curmasklist[vi-1] #.copy() #Copy mask
+        if (len(tmpinds) > 0):
+            for vi in range(np.min(tmpinds), sysloc+1-1):
+                if (vi == 0): #If at start of channels
+                    continue
+                #Copies over previous mask if doesn't show up for this channel
+                if ((curmasklist[vi].max() == False)
+                            and (curmasklist[vi-1].max() == True)):
+                    curmasklist[vi] = curmasklist[vi-1] #.copy() #Copy mask
 
-        #Below checks masks at AND to the right of the systemic velocity
-        for vi in range(sysloc, (np.max(tmpinds)+1))[::-1]: #Reversed direction
-            if (vi == len(vel_arr) - 1): #If at end of channels
-                continue
-            #Copies over previous mask if doesn't show up for this channel
-            if ((curmasklist[vi].max() == False)
-                        and (curmasklist[vi+1].max() == True)):
-                curmasklist[vi] = curmasklist[vi+1] #.copy() #Copy mask
+            #Below checks masks at AND to the right of the systemic velocity
+            for vi in range(sysloc, (np.max(tmpinds)+1))[::-1]: #Reversed dir.
+                if (vi == len(vel_arr) - 1): #If at end of channels
+                    continue
+                #Copies over previous mask if doesn't show up for this channel
+                if ((curmasklist[vi].max() == False)
+                            and (curmasklist[vi+1].max() == True)):
+                    curmasklist[vi] = curmasklist[vi+1] #.copy() #Copy mask
 
         #Below records this mask set within the overall mask list
         sepmasklist[ai] = curmasklist
