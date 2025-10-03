@@ -55,11 +55,17 @@ def extract_fits(filename, restfreq=None):
     fitdict = {} #To hold extracted info
 
     #For emission and associated lengths
-    emmatr = openfit[0].data[0]
+    dims = openfit[0].data.shape
+    if ((len(dims) == 4) and (dims[0] == 1)):
+        emmatr = openfit[0].data[0]
+    elif (len(dims) == 3):
+        emmatr = openfit[0].data
+    else:
+        raise ValueError(f"Err: Data shape not allowed: {dims}")
     fitdict["emmatr"] = emmatr
-    ralen = len(emmatr[0,0]) #Length of RA
-    declen = len(emmatr[0]) #Length of DEC
-    nchan = len(emmatr) #Number of channels
+    ralen = openfit[0].header['NAXIS1']
+    declen = openfit[0].header['NAXIS2']
+    nchan = openfit[0].header['NAXIS3']
     fitdict["nchan"] = nchan
     fitdict["ralen"] = ralen
     fitdict["declen"] = declen
@@ -98,23 +104,23 @@ def extract_fits(filename, restfreq=None):
         tempbmins = [openfit[1].data[bi][1] for bi in range(0, tempnc)]
         tempbpas = [openfit[1].data[bi][2] for bi in range(0, tempnc)]
         #Determine median beam values
-        tempbmajmean = np.mean(tempbmajs)*1.0 #arcsec
-        tempbminmean = np.mean(tempbmins)*1.0 #arcsec
-        tempbpamean = np.mean(tempbpas)*1.0 #deg
+        tempbmajmed = np.median(tempbmajs)*1.0 #arcsec
+        tempbminmed = np.median(tempbmins)*1.0 #arcsec
+        tempbpamed = np.median(tempbpas)*1.0 #deg
         #Make sure beam variation is not too huge across channels
         bcheck = 0.02
-        if (((np.std(tempbmajs)/tempbmajmean) > bcheck)
-                or ((np.std(tempbmins)/tempbminmean) > bcheck)
-                or ((np.std(tempbpas)/tempbpamean) > bcheck)):
-            print(np.std(tempbmajs)/tempbmajmean)
-            print(np.std(tempbmins)/tempbminmean)
-            print(np.std(tempbpas)/tempbpamean)
+        if (((np.std(tempbmajs)/tempbmajmed) > bcheck)
+                or ((np.std(tempbmins)/tempbminmed) > bcheck)
+                or ((np.std(tempbpas)/tempbpamed) > bcheck)):
+            print(np.std(tempbmajs)/tempbmajmed)
+            print(np.std(tempbmins)/tempbminmed)
+            print(np.std(tempbpas)/tempbpamed)
             raise ValueError("Whoa! >{0}% diff. in beam over channels!"
                     .format((bcheck*100)))
         #Record median beam values
-        fitdict["bmaj"] = tempbmajmean/3600.0*pi/180 #arcsec->rad, full axis
-        fitdict["bmin"] = tempbminmean/3600.0*pi/180 #arcsec->rad, full axis
-        fitdict["bpa"] = tempbpamean*pi/180.0 #[deg] -> [rad]
+        fitdict["bmaj"] = tempbmajmed/3600.0*pi/180 #arcsec->rad, full axis
+        fitdict["bmin"] = tempbminmed/3600.0*pi/180 #arcsec->rad, full axis
+        fitdict["bpa"] = tempbpamed*pi/180.0 #[deg] -> [rad]
 
     #For velocity
     vel0 = openfit[0].header["CRVAL3"] #m/s
