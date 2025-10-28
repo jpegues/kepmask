@@ -196,7 +196,8 @@ class KepMask():
     def generate(self, whichchans=None, inner_radius=None, hypfreqs=None,
                     showtests=False, V0_ms=300.0, R0_AU=100.0, q0=0.3,
                     mask_override=None, mask_Rmax=None, beamfactor=3.0,
-                    beamcut=0.03, do_generate_products=True):
+                    beamcut=0.03, frac_convbuff=8.0,
+                    do_generate_products=True):
         """
         METHOD: generate
         PURPOSE: Generate a Keplerian mask for the previously-stored image cube.
@@ -317,6 +318,7 @@ class KepMask():
             posang=paramdict["PA"], incang=paramdict["inc"],
             dist=paramdict["dist"], sysvel=paramdict["vsys"],
             radeltarr=radeltarr, decdeltarr=decdeltarr,
+            frac_convbuff=frac_convbuff,
             beamfactor=beamfactor, beamcut=beamcut, freqlist=hypfreqs,
             broadyen_pre0=V0_ms, broadyen_r0=R0_AU, broadyen_qval=q0,
             showtests=showtests, emsummask=mask_override, rmax=mask_Rmax,

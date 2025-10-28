@@ -93,13 +93,7 @@ pi = np.pi
 ##      ...colorbar of any tests plotted
 ##NOTES:
 ##    - Units of radians, kg, and m/s as applicable, EXCEPT FOR BROADENING PARAMETER R0_AU, WHICH IS IN AU.
-def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
-            rawidth, decwidth, velwidth, mstar, posang, incang, dist,
-            sysvel, whichchans, freqlist=None,
-            broadyen_pre0=None, broadyen_r0=None, broadyen_qval=None,
-            beamfactor=3.0, beamcut=0.03,
-            showtests=False, radeltarr=None, decdeltarr=None,
-            emsummask=None, rmax=None, cmap=plt.cm.hot_r):
+def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy, rawidth, decwidth, velwidth, mstar, posang, incang, dist, sysvel, whichchans, frac_convbuff, freqlist=None, broadyen_pre0=None, broadyen_r0=None, broadyen_qval=None, beamfactor=3.0, beamcut=0.03, showtests=False, radeltarr=None, decdeltarr=None, emsummask=None, rmax=None, cmap=plt.cm.hot_r):
     ##Below Section: Raises warning if conflicts in desired cutoffs
     if (emsummask is not None) and (rmax is not None): #Warning if both given
         print("Both mask-override and max. R specified! Choosing max. R.")
@@ -115,6 +109,17 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
     else: #If no hyperfine lines given, will just calculate 1 mask set as normal
         sysvelarr = [sysvel]
     sepmasklist = [None]*len(sysvelarr) #Relevant only if hyperfine masks desired
+
+
+    ##Below Section: Converts beam from radian units to pixel (pts) units
+    beamsetptshere = change_beamradtopts(bmaj=bmaj, bmin=bmin,
+            bpa=bpa, rawidth=rawidth, decwidth=decwidth)
+    bmajpts = beamsetptshere[0] #[pts]
+    bminpts = beamsetptshere[1] #[pts]
+    #Calculate buffer for mask convolution
+    buff_pixels = (
+        (frac_convbuff * np.sqrt((bmajpts * bminpts)))
+    ) #Amount of spacing around mask edges to allow for convolution
 
 
     ##Below Section: Calculates expected velocity field for the given disk
@@ -153,11 +158,12 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
             plt.ylabel("DEC [\"]")
             cbar.set_label(r"km s$^{-1}$", rotation=270, labelpad=20)
             plt.show()
+        #
 
 
-        #Below Section: Calculates velocity masks (when velocities in ranges)
+        ##Below Section: Calculates velocity masks (when velocities in ranges)
         if (whichchans is not None):
-            tmpinds = whichchans
+            tmpinds = np.asarray(whichchans)
         else:
             tmpinds = np.arange(0, len(vel_arr), 1)
         #
@@ -165,38 +171,64 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
         curmasklist = np.zeros(
             shape=(len(vel_arr), velmatr.shape[0], velmatr.shape[1])
         ) #To hold current mask set
-        #for vi in tmpinds: #range(0, len(vel_arr)):
-        for vi in range(0, len(vel_arr)):
-            #Skip this channel if not a requested channel
-            if (vi not in tmpinds):
-                continue
 
-            #Below adds thermal broadening and channel width in quadrature
-            velhere = vel_arr[vi]
-            maskhere = ((velmatr >= velhere - (quadwidth/2.0))
-                    *(velmatr <= velhere + (quadwidth/2.0))
-                                    ).astype(float)
+        #Add thermal broadening and channel width in quadrature
+        maskhere = [
+            (((velmatr >= (vel_arr[ind] - (quadwidth/2.0)))
+            & (velmatr <= (vel_arr[ind] + (quadwidth/2.0))))).astype(float)
+            for ind in tmpinds
+        ]
+        #maskhere = (
+        #    (
+        #        velmatr[np.newaxis,:,:]
+        #        >= (vel_arr[tmpinds,np.newaxis,np.newaxis] - (quadwidth/2.0))
+        #    )
+        #    *(
+        #        velmatr[np.newaxis,:,:]
+        #        <= (vel_arr[tmpinds,np.newaxis,np.newaxis] + (quadwidth/2.0))
+        #    )
+        #).astype(float)
 
-            #Below converts beam from radian units to pixel (pts) units
-            beamsetptshere = change_beamradtopts(bmaj=bmaj, bmin=bmin,
-                    bpa=bpa, rawidth=rawidth, decwidth=decwidth)
-            bmajpts = beamsetptshere[0] #[pts]
-            bminpts = beamsetptshere[1] #[pts]
+        #Apply approx. beam conv. (doesn't account for direction)
+        maskhere = [
+            conv_circle_base(
+                matr2D=maskhere[ind], bmaj=bmajpts, bmin=bminpts,
+                factor=beamfactor, buff_pixels=buff_pixels,
+                beamcut=beamcut
+            )
+            for ind in range(0, len(tmpinds))
+        ]
 
-            #Below applies approx. beam conv. (doesn't account for direction)
-            maskhere = conv_circle(matr=maskhere, bmaj=bmajpts, bmin=bminpts,
-                        factor=beamfactor)
-            if maskhere.max() != 0: #If actual mask there; avoids 0/0
-                maskhere = maskhere/1.0/maskhere.max() #Scales so max=1
-            maskhere[maskhere < beamcut] = 0 #Chops mask at given norm. cut
+        #Scale masks so that max=1 while avoiding 0/0
+        #tmpnot0s = np.array([
+        #    ind for ind in range(0, len(tmpinds))
+        #    if (maskhere[ind,:,:].max() != 0) #Avoids 0/0 later
+        #])
+        #maskhere[tmpnot0s,:,:] = (
+        #    maskhere[tmpnot0s,:,:]
+        #    /maskhere[tmpnot0s,:,:].max() #Scale so max is 1
+        #)
+        maskhere = np.array([
+            (item/item.max()) #Normalize so max value is 1
+            if (item.max() != 0) #Avoid division of 0/0
+            else item #If max is 0, then leave as given empty matrix
+            for item in maskhere #Do above for all masks within list
+        ])
 
-            #Below applies radial cutoffs, if so desired
-            if emsummask is not None: #If overall mask of emission given
-                maskhere[~emsummask] = 0
-            if rmax is not None: #If outer edge of disk known
-                maskhere[rmatr > rmax] = 0
-            maskhere = maskhere.astype(bool)
-            curmasklist[vi] = maskhere #.append(maskhere)
+        #Chop mask at normalization cut as well
+        maskhere[maskhere < beamcut] = 0
+
+        #Apply radial cutoffs if given
+        if (emsummask is not None): #If overall mask of emission given
+            maskhere[:,~emsummask] = 0
+        if (rmax is not None):
+            maskhere[:,(rmatr > rmax)] = 0 #If outer edge of disk given
+
+        #Convert mask to boolean
+        maskhere = maskhere.astype(bool)
+
+        #Store the masks in array
+        curmasklist[tmpinds,:,:] = maskhere
 
 
         #Below Section: "Interpolates" for masks not shown due to low pixel res.
@@ -242,9 +274,7 @@ def calc_Kepvelmask(xlen, ylen, vel_arr, bmaj, bmin, bpa, midx, midy,
 ##   Yen et al. 2016: http://iopscience.iop.org/article/10.3847/0004-637X/832/2/204/pdf
 ##NOTES:
 ##    -
-def calc_Kepvelfield(xlen, ylen, midx, midy, rawidth, decwidth, mstar, posang, incang,
-            dist, sysvel, rmax=None, showtests=False,
-            radeltarr=None, decdeltarr=None):
+def calc_Kepvelfield(xlen, ylen, midx, midy, rawidth, decwidth, mstar, posang, incang, dist, sysvel, rmax=None, showtests=False, radeltarr=None, decdeltarr=None):
     ##Below Section: Calculates deprojected radius matrix and velocity matrix
     #x,y in angular space
     indmatrs = np.indices(np.zeros(shape=(ylen, xlen)).shape)
@@ -307,15 +337,89 @@ def calc_broad_yen(rmatr, r0=100, turbpreval=0.1*1E3, qval=0.2):
 
 
 
-##FUNCTION: conv_circle
+##FUNCTION: conv_circle_base
 ##PURPOSE: Convolves a given matrix with a Gaussian, truncated at a circle of the given radii.
 ##NOTES:
 ##    - Units of radians as applicable
-def conv_circle(matr, bmaj, bmin, factor):
+def conv_circle_base(matr2D, bmaj, bmin, factor, buff_pixels, beamcut):
+    #Set x,y lengths of this matrix
+    ylen = matr2D.shape[0]
+    xlen = matr2D.shape[1]
+
+    #Fetch x,y boundaries of mask within this matrix
+    sinds = np.asarray(np.where((matr2D > 0)))
+    ymin = np.min(sinds[0,:])
+    ymax = np.max(sinds[0,:])
+    xmin = np.min(sinds[1,:])
+    xmax = np.max(sinds[1,:])
+
+    #Expand out x,y boundaries using buffer to ensure space for convolution
+    yinds = [
+        int(np.round(np.max([0, (ymin - buff_pixels)]))),
+        int(np.round(np.min([(ylen-1), (ymax + buff_pixels)])))
+    ] #Min,max here is to ensure buffer does not exceed image boundaries
+    xinds = [
+        int(np.round(np.max([0, (xmin - buff_pixels)]))),
+        int(np.round(np.min([(xlen-1), (xmax + buff_pixels)])))
+    ] #Min,max here is to ensure buffer does not exceed image boundaries
+
+    #Cut out the portion of matrix for which to apply convolution
+    cutout = matr2D[yinds[0]:yinds[1]+1,xinds[0]:xinds[1]+1]
+
+    #Apply convolution just to that cutout portion
+    convolved = conv_circle_indiv(
+        matr=cutout, bmaj=bmaj, bmin=bmin, factor=factor
+    )
+
+    #Insert that portion back into overall matrix
+    matr2D[yinds[0]:yinds[1]+1,xinds[0]:xinds[1]+1] = convolved
+
+    #Throw error if convolution edges exceed minimum threshold
+    val_edges = [
+        np.max(convolved[0,:]), np.max(convolved[-1,:]),
+        np.max(convolved[:,0]), np.max(convolved[:,-1])
+    ]
+    is_atedge = [
+        ((yinds[0] > 0) and (val_edges[0] >= beamcut)), #Check top side
+        ((yinds[1] < ylen-1) and (val_edges[1] >= beamcut)), #Check bottom
+        ((xinds[0] > 0) and (val_edges[2] >= beamcut)), #Check left side
+        ((xinds[1] < xlen-1) and (val_edges[3] >= beamcut)) #Check right
+    ] #Booleans to track if cutout region is too small to hold full convolution
+    if (any(is_atedge)):
+        print("Throwing an error... here is a quick plot of the convolution:")
+        plt.close()
+        plt.imshow(matr2D)
+        plt.show()
+        raise ValueError(
+            "Err: Allowed convolution area (buffered by frac_convbuff) "
+            +"is too small and does not exceed actual convolution.\n"
+            +"Try increasing frac_convbuff (set to np.inf to cover max area), "
+            +"or try increasing beamcut to have more stringent area cutoff.\n"
+            +f"Size of original 2D matrix: {matr2D.shape}\n"
+            +f"Size of current cutout: {convolved.shape}\n"
+            +f"Current values at edges of cutout: {val_edges}\n"
+            +f"Current pixel buffer: {buff_pixels}\n"
+            +f"Current bmaj,bmin in pixels: {bmaj}, {bmin}\n"
+            +f"Current beamcut: {beamcut}"
+        )
+    #
+
+    #Return the completed mask
+    return matr2D
+#
+
+
+
+##FUNCTION: conv_circle_indiv
+##PURPOSE: Convolves a given matrix with a Gaussian, truncated at a circle of the given radii.
+##NOTES:
+##    - Units of radians as applicable
+def conv_circle_indiv(matr, bmaj, bmin, factor):
     #Below applies and returns matrix smoothed over given area
     #NOTE: For now, turns ovular beam into a circle
     trunc = np.sqrt(bmaj*bmin) #uses diameter, not radius ####/(4.0*np.log(2))) #circular radius approx. of gaus. beam
-    return ndi.filters.gaussian_filter(matr, sigma=(trunc/1.0/factor))
+    result = ndi.filters.gaussian_filter(matr, sigma=(trunc/1.0/factor))
+    return result
 #
 
 
